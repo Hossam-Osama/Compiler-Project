@@ -12,8 +12,7 @@ struct NFS {
     map<string, map<string, vector<string>>> trans;
     vector<string> accepting;
     string starting;
-
-    };
+};
 
 NFS filetoFSA();
 

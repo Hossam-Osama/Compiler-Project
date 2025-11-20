@@ -430,14 +430,74 @@ void writeTokensToFile(const vector<string>& tokens, const string& filename) {
 }
 
 
+vector<string> extractPriority(const string& filename) {
+    ifstream file(filename);
+    if (!file.is_open()) {
+        cerr << "Error opening rules file.\n";
+        exit(1);
+    }
 
+    vector<string> keywords;  // Tokens from { ... } blocks
+    vector<string> others;    // All other tokens in file order
+    string line;
+
+    while (getline(file, line)) {
+        // Trim leading whitespace
+        line.erase(0, line.find_first_not_of(" \t"));
+        if (line.empty()) continue;
+
+        if (line.front() == '{') {
+            line.pop_back();   // remove trailing }
+            line.erase(0, 1);  // remove leading {
+            stringstream ss(line);
+            string keyword;
+            while (ss >> keyword) {
+                keywords.push_back(keyword); // store for front of priority list
+            }
+            continue;
+        }
+
+        if (line.front() == '[') {
+            line.pop_back(); line.erase(0,1);
+            stringstream ss(line);
+            string symbol;
+            while (ss >> symbol) {
+                if (symbol.size() == 2 && symbol[0] == '\\')
+                    symbol = symbol.substr(1);
+                others.push_back(symbol);
+            }
+            continue;
+        }
+
+        size_t colonPos = line.find(':');
+        if (colonPos != string::npos) {
+            string name = line.substr(0, colonPos);
+            name.erase(remove_if(name.begin(), name.end(), ::isspace), name.end());
+            others.push_back(name);
+            continue;
+        }
+
+    }
+
+    vector<string> priority;
+    // Change: only insert keywords **at the front**, preserving their order
+    priority.insert(priority.end(), keywords.begin(), keywords.end());
+    priority.insert(priority.end(), others.begin(), others.end());
+
+    return priority;
+}
 
 
 int main() {
     DFA dfa = (nfa_to_dfa(filetoFSA()));
     dfa = minimizeDFA(dfa);
     writeDFATransitionsToFile(dfa,"minimized_dfa");
-    vector<string> priority ={"boolean","int","float","if","while","else",";",",","(",")","{","}","id","num","relop","assign","addop","mulop"};
+    // {"boolean","int","float","if","while","else",";",",","(",")","{","}","id","num","relop","assign","addop","mulop"};
+    vector<string> priority = extractPriority("Rules");
+    cout << "Token Priority Order:\n";
+    for (const string& token : priority) {
+        cout << token << "\n";
+    }
     string inputFilename = "test.txt"; 
     ifstream inputFile(inputFilename);
 
