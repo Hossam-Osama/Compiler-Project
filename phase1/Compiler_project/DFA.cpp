@@ -11,7 +11,8 @@
 using namespace std;
 typedef set<string> State;
 
-
+map<string, int> symbolTable;
+int nextSymbolID = 0;
 
 // DFA Structure
 struct DFA {
@@ -402,6 +403,16 @@ vector<string> tokenize(const DFA& dfa, const string& input, const vector<string
             }
         }
 
+        // Extract the actual lexeme for this token
+        string lexeme = input.substr(pos, lastMatchPos - pos);
+
+        // Insert into symbol table if needed
+        if (selectedToken == "id") {
+            if (!symbolTable.count(lexeme)) {
+                symbolTable[lexeme] = nextSymbolID++;
+            }
+        }
+
         // Add the selected token to the result
         tokens.push_back(selectedToken);
 
@@ -513,20 +524,21 @@ int main() {
     while (getline(inputFile, line)) {
         vector<string> words = splitBywhitespace(line);
         for(string word :words){
-          vector<string> wordToken =  tokenize(dfa,word,priority);
+          vector<string> wordToken =  tokenize(dfa, word, priority);
           for (const std::string& str : wordToken) {
             std::cout << str << " ";
     }
-          
-          tokens.insert(tokens.end(),wordToken.begin(),wordToken.end());}
-        
+          tokens.insert(tokens.end(), wordToken.begin(), wordToken.end());}
     }
 
     inputFile.close();
     writeTokensToFile(tokens,"result.txt");
-   print_dfa(dfa);
+    print_dfa(dfa);
 
-   
+    cout << "\nSymbol Table:\n";
+    for (auto& [lex, id] : symbolTable) {
+        cout << lex << " -> " << id << "\n";
+    }
 
     return 0;
 }
