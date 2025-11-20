@@ -1,0 +1,4 @@
+count 1
+mnt 3
+pass 2
+sum 0

@@ -540,6 +540,18 @@ int main() {
         cout << lex << " -> " << id << "\n";
     }
 
+
+    ofstream out("symbolTable.txt");
+    if (!out.is_open()) {
+        cerr << "Error: Could not open symbol table file.\n";
+    }
+
+    for (auto& [lexeme, id] : symbolTable) {
+        out << lexeme << " " << id << "\n";
+    }
+
+    out.close();
+
     return 0;
 }
 
