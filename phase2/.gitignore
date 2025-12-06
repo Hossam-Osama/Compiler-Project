@@ -1,0 +1,7 @@
+build/
+*.exe
+*.obj
+*.o
+*.log
+*.json
+*.out
