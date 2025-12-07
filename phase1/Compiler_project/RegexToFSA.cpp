@@ -30,7 +30,7 @@ std::vector<std::string> tokenizeString(const std::string& input) {
     char prev = input[0];
     for (char ch : input) {
         // Check if the character is a delimiter
-        if ((std::isspace(ch) || ch == '*' || ch == '|' || ch == '(' || ch == ')' || ch == '-'||ch == '+')&&prev!='\\') {
+        if ((std::isspace(ch) || ch == '*' || ch == '|' || ch == '(' || ch == ')' || ch == '-'||ch == '+' )&&prev!='\\') {
             // If we have accumulated characters, add them to the result vector
             if (!current.empty()) {
                
@@ -94,11 +94,25 @@ NFS charToNfs(string x){
     NFS nfs;
     nfs.starting = to_string(state);
     nfs.accepting.push_back(to_string(state+1));
-    nfs.trans[to_string(state)][(x[0]=='\\')?x.substr(1):x].push_back(to_string(state+1));
-    nfs.trans[to_string(state+1)];
-    state+=2;
-    return nfs;
 
+    string symbol;
+
+    // ✅ FIX: handle epsilon (\L)
+    if (x == "\\L") {
+        symbol = " ";   // epsilon
+    }
+    else if (x[0] == '\\') {
+        symbol = x.substr(1);  // escaped literal
+    }
+    else {
+        symbol = x;
+    }
+
+    nfs.trans[to_string(state)][symbol].push_back(to_string(state+1));
+    nfs.trans[to_string(state+1)];
+
+    state += 2;
+    return nfs;
 }
 NFS  handleUnion(NFS nfs1,NFS nfs2){
     NFS nfs;

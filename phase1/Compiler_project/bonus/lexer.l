@@ -16,18 +16,18 @@ boolean int float
 "boolean"|"int"|"float"    { printf("%s\n", yytext); }
 "if"|"else"|"while"        { printf("%s\n", yytext); }
 
-{id}                        { printf("%s\n", yytext); }
+{id}                        { printf("id\n", yytext); }
 
-{num}                       { printf("%s\n", yytext); }
+{num}                       { printf("num\n", yytext); }
 
-"=="                        { printf("==\n"); }
-"!="                        { printf("!=\n"); }
-">"                         { printf(">\n"); }
-">="                        { printf(">=\n"); }
-"<"                         { printf("<\n"); }
-"<="                        { printf("<=\n"); }
+"=="                        { printf("relop\n"); }
+"!="                        { printf("relop\n"); }
+">"                         { printf("relop\n"); }
+">="                        { printf("relop\n"); }
+"<"                         { printf("relop\n"); }
+"<="                        { printf("relop\n"); }
 
-"="                         { printf("=\n"); }
+"="                         { printf("assign\n"); }
 
 ";"                         { printf(";\n"); }
 ","                         { printf(",\n"); }
@@ -36,10 +36,10 @@ boolean int float
 "\{"                        { printf("{\n"); }
 "\}"                        { printf("}\n"); }
 
-"+"                         { printf("+\n"); }
-"-"                         { printf("-\n"); }
-"*"                         { printf("*\n"); }
-"/"                         { printf("/\n"); }
+"+"                         { printf("addop\n"); }
+"-"                         { printf("addop\n"); }
+"*"                         { printf("mulop\n"); }
+"/"                         { printf("mulop\n"); }
 
 [ \t\n]+                    ;
 

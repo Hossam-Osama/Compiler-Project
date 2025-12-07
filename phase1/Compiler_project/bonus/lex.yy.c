@@ -654,47 +654,47 @@ YY_RULE_SETUP
 case 3:
 YY_RULE_SETUP
 #line 19 "lexer.l"
-{ printf("%s\n", yytext); }
+{ printf("id\n", yytext); }
 	YY_BREAK
 case 4:
 YY_RULE_SETUP
 #line 21 "lexer.l"
-{ printf("%s\n", yytext); }
+{ printf("num\n", yytext); }
 	YY_BREAK
 case 5:
 YY_RULE_SETUP
 #line 23 "lexer.l"
-{ printf("==\n"); }
+{ printf("relop\n"); }
 	YY_BREAK
 case 6:
 YY_RULE_SETUP
 #line 24 "lexer.l"
-{ printf("!=\n"); }
+{ printf("relop\n"); }
 	YY_BREAK
 case 7:
 YY_RULE_SETUP
 #line 25 "lexer.l"
-{ printf(">\n"); }
+{ printf("relop\n"); }
 	YY_BREAK
 case 8:
 YY_RULE_SETUP
 #line 26 "lexer.l"
-{ printf(">=\n"); }
+{ printf("relop\n"); }
 	YY_BREAK
 case 9:
 YY_RULE_SETUP
 #line 27 "lexer.l"
-{ printf("<\n"); }
+{ printf("relop\n"); }
 	YY_BREAK
 case 10:
 YY_RULE_SETUP
 #line 28 "lexer.l"
-{ printf("<=\n"); }
+{ printf("relop\n"); }
 	YY_BREAK
 case 11:
 YY_RULE_SETUP
 #line 30 "lexer.l"
-{ printf("=\n"); }
+{ printf("assign\n"); }
 	YY_BREAK
 case 12:
 YY_RULE_SETUP
@@ -729,22 +729,22 @@ YY_RULE_SETUP
 case 18:
 YY_RULE_SETUP
 #line 39 "lexer.l"
-{ printf("+\n"); }
+{ printf("addop\n"); }
 	YY_BREAK
 case 19:
 YY_RULE_SETUP
 #line 40 "lexer.l"
-{ printf("-\n"); }
+{ printf("addop\n"); }
 	YY_BREAK
 case 20:
 YY_RULE_SETUP
 #line 41 "lexer.l"
-{ printf("*\n"); }
+{ printf("mulop\n"); }
 	YY_BREAK
 case 21:
 YY_RULE_SETUP
 #line 42 "lexer.l"
-{ printf("/\n"); }
+{ printf("mulop\n"); }
 	YY_BREAK
 case 22:
 YY_RULE_SETUP
