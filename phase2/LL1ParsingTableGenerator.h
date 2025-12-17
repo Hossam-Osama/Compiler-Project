@@ -45,6 +45,14 @@ public:
                   const std::string &grammarFile,
                   const std::string &outputFile);
 
+    // getters
+    const std::map<std::pair<std::string, std::string>, std::string> &getParsingTable() const { return parsingTable; }
+    const std::set<std::string> &getTerminals() const { return terminals; }
+    const std::set<std::string> &getNonTerminals() const { return nonTerminals; }
+    const std::map<std::string, std::set<std::string>> &getFirstSets() const { return firstSets; }
+    const std::map<std::string, std::set<std::string>> &getFollowSets() const { return followSets; }
+
+
 private:
     /**
      * @struct Rule
@@ -72,12 +80,6 @@ private:
     const std::string LAMBDA = "\\L"; ///< Lambda symbol representation
     const std::string EPSILON = "ε";  ///< Epsilon symbol representation
 
-    // getters
-    const std::map<std::pair<std::string, std::string>, std::string> &getParsingTable() const { return parsingTable; }
-    const std::set<std::string> &getTerminals() const { return terminals; }
-    const std::set<std::string> &getNonTerminals() const { return nonTerminals; }
-    const std::map<std::string, std::set<std::string>> &getFirstSets() const { return firstSets; }
-    const std::map<std::string, std::set<std::string>> &getFollowSets() const { return followSets; }
     const std::map<std::string, std::vector<Rule>> &getGrammarRules() const { return grammarRules; }
 
     /**
