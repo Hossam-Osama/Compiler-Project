@@ -12,7 +12,6 @@ void LL1ParsingTableGenerator::generate(const std::string &firstFollowFile,
                                         const std::string &grammarFile,
                                         const std::string &outputFile)
 {
-
     // Clear existing data
     firstSets.clear();
     followSets.clear();
@@ -111,20 +110,24 @@ bool LL1ParsingTableGenerator::loadFirstFollowSets(const std::string &filename)
                 }
                 if (!token.empty())
                 {
-                    firstSet.insert(token);
+                    if (token == EPSILON)
+                    {
+                        firstSet.insert(LAMBDA); // Use LAMBDA internally
+                    }
+                    else
+                    {
+                        firstSet.insert(token);
+                    }
                 }
             }
 
-            // Handle epsilon case
             if (symbol == EPSILON)
             {
-                firstSets[LAMBDA] = firstSet;
+                symbol = LAMBDA;
             }
-            else
-            {
-                firstSets[symbol] = firstSet;
-                nonTerminals.insert(symbol);
-            }
+
+            firstSets[symbol] = firstSet;
+            nonTerminals.insert(symbol);
         }
         else if (line.find("Follow(") == 0)
         {
@@ -168,7 +171,11 @@ bool LL1ParsingTableGenerator::loadFirstFollowSets(const std::string &filename)
                 {
                     if (token == "$")
                     {
-                        followSet.insert(token);
+                        followSet.insert("$");
+                    }
+                    else if (token == EPSILON)
+                    {
+                        followSet.insert(LAMBDA);
                     }
                     else
                     {
@@ -414,8 +421,6 @@ void LL1ParsingTableGenerator::extractTerminalsFromGrammar()
 {
     // Add standard terminals
     terminals.insert("$");
-    terminals.insert(LAMBDA);
-    terminals.insert(EPSILON);
 
     // Extract terminals from grammar rules
     for (const auto &entry : grammarRules)
@@ -429,12 +434,13 @@ void LL1ParsingTableGenerator::extractTerminalsFromGrammar()
                 {
                     terminals.insert(token);
                 }
-                // Check if it's a lambda
+                // Check if it's epsilon (should be handled specially)
                 else if (token == LAMBDA || token == EPSILON)
                 {
-                    terminals.insert(token);
+                    // Don't add epsilon to terminals - it's a special symbol
+                    continue;
                 }
-                // Otherwise, it's a non-terminal (already in nonTerminals set)
+                // Otherwise, it could be a non-terminal
                 else if (terminals.find(token) == terminals.end() &&
                          nonTerminals.find(token) == nonTerminals.end())
                 {
@@ -476,6 +482,7 @@ void LL1ParsingTableGenerator::extractTerminalsFromGrammar()
         for (const auto &symbol : entry.second)
         {
             if (symbol != LAMBDA && symbol != EPSILON &&
+                symbol != "$" &&
                 nonTerminals.find(symbol) == nonTerminals.end())
             {
                 terminals.insert(symbol);
@@ -493,8 +500,6 @@ bool LL1ParsingTableGenerator::generateParsingTable()
     {
         for (const auto &terminal : terminals)
         {
-            if (terminal == LAMBDA || terminal == EPSILON || terminal == "$")
-                continue;
             parsingTable[{nonTerminal, terminal}] = "Error";
         }
         // Also add for $
@@ -516,8 +521,11 @@ bool LL1ParsingTableGenerator::generateParsingTable()
             // Rule 1: For each terminal a in FIRST(α), add A -> α to M[A, a]
             for (const auto &a : firstAlpha)
             {
-                if (a == LAMBDA || a == EPSILON)
+                if (a == LAMBDA)
+                {
+                    // Handle epsilon separately (Rule 2)
                     continue;
+                }
 
                 std::pair<std::string, std::string> key = {A, a};
                 if (parsingTable.find(key) != parsingTable.end())
@@ -538,46 +546,22 @@ bool LL1ParsingTableGenerator::generateParsingTable()
 
             // Rule 2: If ε is in FIRST(α), then for each terminal b in FOLLOW(A),
             // add A -> α to M[A, b]
-            if (firstAlpha.find(LAMBDA) != firstAlpha.end() ||
-                firstAlpha.find(EPSILON) != firstAlpha.end())
+            if (firstAlpha.find(LAMBDA) != firstAlpha.end())
             {
-
-                // Also if α itself is ε
-                if (alpha.size() == 1 && (alpha[0] == LAMBDA || alpha[0] == EPSILON))
+                if (followSets.find(A) != followSets.end())
                 {
-                    if (followSets.find(A) != followSets.end())
+                    for (const auto &b : followSets[A])
                     {
-                        for (const auto &b : followSets[A])
-                        {
-                            std::pair<std::string, std::string> key = {A, b};
-                            if (parsingTable.find(key) != parsingTable.end())
-                            {
-                                if (parsingTable[key] != "Error")
-                                {
-                                    // Conflict - not LL(1)
-                                    std::cerr << "LL(1) Conflict at [" << A << ", " << b << "]: "
-                                              << parsingTable[key] << " vs " << rule.originalString << std::endl;
-                                    isLL1 = false;
-                                }
-                                else
-                                {
-                                    parsingTable[key] = rule.originalString;
-                                }
-                            }
-                        }
-                    }
+                        if (b == LAMBDA)
+                            continue; // Skip epsilon from follow sets
 
-                    // Also add for $
-                    if (followSets.find(A) != followSets.end() &&
-                        followSets[A].find("$") != followSets[A].end())
-                    {
-                        std::pair<std::string, std::string> key = {A, "$"};
+                        std::pair<std::string, std::string> key = {A, b};
                         if (parsingTable.find(key) != parsingTable.end())
                         {
                             if (parsingTable[key] != "Error")
                             {
                                 // Conflict - not LL(1)
-                                std::cerr << "LL(1) Conflict at [" << A << ", $]: "
+                                std::cerr << "LL(1) Conflict at [" << A << ", " << b << "]: "
                                           << parsingTable[key] << " vs " << rule.originalString << std::endl;
                                 isLL1 = false;
                             }
@@ -586,6 +570,25 @@ bool LL1ParsingTableGenerator::generateParsingTable()
                                 parsingTable[key] = rule.originalString;
                             }
                         }
+                    }
+                }
+
+                // Also handle $ specifically
+                std::pair<std::string, std::string> key = {A, "$"};
+                if (parsingTable.find(key) != parsingTable.end() && parsingTable[key] == "Error")
+                {
+                    // Check if $ is in FOLLOW(A)
+                    bool dollarInFollow = false;
+                    if (followSets.find(A) != followSets.end())
+                    {
+                        dollarInFollow = (followSets[A].find("$") != followSets[A].end());
+                    }
+
+                    // For ε productions, we also need to consider that they might be valid
+                    // when the input is empty (i.e., at the end of string, represented by $)
+                    if (dollarInFollow || (alpha.size() == 1 && (alpha[0] == LAMBDA || alpha[0] == EPSILON)))
+                    {
+                        parsingTable[key] = rule.originalString;
                     }
                 }
             }
@@ -616,14 +619,24 @@ std::set<std::string> LL1ParsingTableGenerator::computeFirstOfSequence(const std
 
     for (const auto &symbol : sequence)
     {
+        // Check if symbol is epsilon
         if (symbol == LAMBDA || symbol == EPSILON)
         {
             result.insert(LAMBDA);
             break;
         }
 
-        // Check if symbol is terminal
-        if (terminals.find(symbol) != terminals.end())
+        // Check if symbol is terminal (enclosed in quotes)
+        if (symbol.length() >= 2 && symbol.front() == '\'' && symbol.back() == '\'')
+        {
+            result.insert(symbol);
+            allContainEpsilon = false;
+            break;
+        }
+
+        // Check if symbol is a regular terminal (not in nonTerminals)
+        if (terminals.find(symbol) != terminals.end() &&
+            nonTerminals.find(symbol) == nonTerminals.end())
         {
             result.insert(symbol);
             allContainEpsilon = false;
@@ -638,14 +651,14 @@ std::set<std::string> LL1ParsingTableGenerator::computeFirstOfSequence(const std
             // Add all symbols except epsilon
             for (const auto &s : first)
             {
-                if (s != LAMBDA && s != EPSILON)
+                if (s != LAMBDA)
                 {
                     result.insert(s);
                 }
             }
 
             // Check if epsilon is in FIRST(symbol)
-            if (first.find(LAMBDA) == first.end() && first.find(EPSILON) == first.end())
+            if (first.find(LAMBDA) == first.end())
             {
                 allContainEpsilon = false;
                 break;
@@ -653,6 +666,8 @@ std::set<std::string> LL1ParsingTableGenerator::computeFirstOfSequence(const std
         }
         else
         {
+            // Symbol not found in first sets - treat as terminal
+            result.insert(symbol);
             allContainEpsilon = false;
             break;
         }
@@ -670,12 +685,30 @@ std::set<std::string> LL1ParsingTableGenerator::computeFirstOfSequence(const std
 std::string LL1ParsingTableGenerator::formatProduction(const std::string &lhs, const std::vector<std::string> &rhs)
 {
     std::string result = lhs + " ::= ";
-    for (size_t i = 0; i < rhs.size(); ++i)
+
+    if (rhs.empty() || (rhs.size() == 1 && (rhs[0] == LAMBDA || rhs[0] == EPSILON)))
     {
-        if (i > 0)
-            result += " ";
-        result += rhs[i];
+        result += EPSILON; // Use ε for display
     }
+    else
+    {
+        for (size_t i = 0; i < rhs.size(); ++i)
+        {
+            if (i > 0)
+                result += " ";
+
+            // If it's lambda internally, display as epsilon
+            if (rhs[i] == LAMBDA)
+            {
+                result += EPSILON;
+            }
+            else
+            {
+                result += rhs[i];
+            }
+        }
+    }
+
     return result;
 }
 
@@ -692,10 +725,7 @@ void LL1ParsingTableGenerator::writeParsingTable(const std::string &filename)
     std::vector<std::string> sortedTerminals;
     for (const auto &terminal : terminals)
     {
-        if (terminal != LAMBDA && terminal != EPSILON)
-        {
-            sortedTerminals.push_back(terminal);
-        }
+        sortedTerminals.push_back(terminal);
     }
     // Add $ at the end
     sortedTerminals.push_back("$");
