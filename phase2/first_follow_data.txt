@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 First(CLASS_BODY ) = { CLASS_MEMBER_LIST }
 First(CLASS_DECL ) = { MODIFIER }
 First(CLASS_MEMBER ) = { ASSIGNMENT DECLARATION METHOD_DECL }
@@ -18,3 +19,18 @@ First(TERM ) = { '(' IDENTIFIER NUMBER }
 First(WHILE ) = { 'while' }
 First(ε) = { }
 Follow(CLASS_BODY ) = { $ }
+=======
+First(DECLARATION ) = { PRIMITIVE_TYPE }
+First(EXPRESSION ) = { SIMPLE_EXPRESSION }
+First(FACTOR ) = { ( id num }
+First(IF ) = { if }
+First(METHOD_BODY ) = { STATEMENT_LIST }
+First(PRIMITIVE_TYPE ) = { float int }
+First(SIGN ) = { + - }
+First(SIMPLE_EXPRESSION ) = { SIGN SIMPLE_EXPRESSION TERM }
+First(STATEMENT ) = { ASSIGNMENT DECLARATION IF WHILE }
+First(STATEMENT_LIST ) = { STATEMENT STATEMENT_LIST }
+First(TERM ) = { FACTOR TERM }
+First(WHILE ) = { while }
+Follow(DECLARATION ) = { $ }
+>>>>>>> ec83f269aea1749501027b2a7331fab4271d1e4c

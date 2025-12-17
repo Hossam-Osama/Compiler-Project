@@ -118,6 +118,12 @@ int main()
             first_follow_file,
             my_grammer_file,
             parsingTableFile);
+
+        map<pair<string, string>, string> parsingTable = parsingTableGenerator.getParsingTable();
+        for (const auto &entry : parsingTable)
+        {
+            cout << entry.first.first << " -> " << entry.first.second << " -> " << entry.second << endl;
+        }
     }
     catch (const exception &e)
     {
