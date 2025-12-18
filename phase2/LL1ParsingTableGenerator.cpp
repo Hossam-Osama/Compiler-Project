@@ -6,11 +6,13 @@
 #include <iomanip>
 #include <cctype>
 
+using namespace std;
+
 LL1ParsingTableGenerator::LL1ParsingTableGenerator() {}
 
-void LL1ParsingTableGenerator::generate(const std::string &firstFollowFile,
-                                        const std::string &grammarFile,
-                                        const std::string &outputFile)
+void LL1ParsingTableGenerator::generate(const string &firstFollowFile,
+                                        const string &grammarFile,
+                                        const string &outputFile)
 {
     // Clear existing data
     firstSets.clear();
@@ -23,14 +25,14 @@ void LL1ParsingTableGenerator::generate(const std::string &firstFollowFile,
     // Load first and follow sets
     if (!loadFirstFollowSets(firstFollowFile))
     {
-        std::cerr << "Error loading first/follow sets from: " << firstFollowFile << std::endl;
+        cerr << "Error loading first/follow sets from: " << firstFollowFile << endl;
         return;
     }
 
     // Load grammar rules
     if (!loadGrammarRules(grammarFile))
     {
-        std::cerr << "Error loading grammar rules from: " << grammarFile << std::endl;
+        cerr << "Error loading grammar rules from: " << grammarFile << endl;
         return;
     }
 
@@ -40,27 +42,27 @@ void LL1ParsingTableGenerator::generate(const std::string &firstFollowFile,
     // Generate parsing table
     if (!generateParsingTable())
     {
-        std::cerr << "Grammar is not LL(1)" << std::endl;
+        cerr << "Grammar is not LL(1)" << endl;
         return;
     }
 
     // Write parsing table to file
     writeParsingTable(outputFile);
 
-    std::cout << "Parsing table successfully generated and saved to: " << outputFile << std::endl;
+    cout << "Parsing table successfully generated and saved to: " << outputFile << endl;
 }
 
-bool LL1ParsingTableGenerator::loadFirstFollowSets(const std::string &filename)
+bool LL1ParsingTableGenerator::loadFirstFollowSets(const string &filename)
 {
-    std::ifstream file(filename);
+    ifstream file(filename);
     if (!file.is_open())
     {
-        std::cerr << "Cannot open first/follow file: " << filename << std::endl;
+        cerr << "Cannot open first/follow file: " << filename << endl;
         return false;
     }
 
-    std::string line;
-    while (std::getline(file, line))
+    string line;
+    while (getline(file, line))
     {
         // Skip empty lines
         if (line.empty())
@@ -75,31 +77,31 @@ bool LL1ParsingTableGenerator::loadFirstFollowSets(const std::string &filename)
             // Parse First set
             size_t start = 6; // Length of "First("
             size_t end = line.find(')', start);
-            std::string symbol = line.substr(start, end - start);
+            string symbol = line.substr(start, end - start);
             trim(symbol);
 
             // Find the equals sign
             size_t equalsPos = line.find('=', end);
-            if (equalsPos == std::string::npos)
+            if (equalsPos == string::npos)
                 continue;
 
             // Find the opening brace
             size_t bracePos = line.find('{', equalsPos);
-            if (bracePos == std::string::npos)
+            if (bracePos == string::npos)
                 continue;
 
             // Find the closing brace
             size_t endBrace = line.find('}', bracePos);
-            if (endBrace == std::string::npos)
+            if (endBrace == string::npos)
                 continue;
 
             // Extract symbols inside braces
-            std::string symbols = line.substr(bracePos + 1, endBrace - bracePos - 1);
+            string symbols = line.substr(bracePos + 1, endBrace - bracePos - 1);
 
             // Split by spaces
-            std::istringstream iss(symbols);
-            std::string token;
-            std::set<std::string> firstSet;
+            istringstream iss(symbols);
+            string token;
+            set<string> firstSet;
 
             while (iss >> token)
             {
@@ -134,31 +136,31 @@ bool LL1ParsingTableGenerator::loadFirstFollowSets(const std::string &filename)
             // Parse Follow set
             size_t start = 7; // Length of "Follow("
             size_t end = line.find(')', start);
-            std::string symbol = line.substr(start, end - start);
+            string symbol = line.substr(start, end - start);
             trim(symbol);
 
             // Find the equals sign
             size_t equalsPos = line.find('=', end);
-            if (equalsPos == std::string::npos)
+            if (equalsPos == string::npos)
                 continue;
 
             // Find the opening brace
             size_t bracePos = line.find('{', equalsPos);
-            if (bracePos == std::string::npos)
+            if (bracePos == string::npos)
                 continue;
 
             // Find the closing brace
             size_t endBrace = line.find('}', bracePos);
-            if (endBrace == std::string::npos)
+            if (endBrace == string::npos)
                 continue;
 
             // Extract symbols inside braces
-            std::string symbols = line.substr(bracePos + 1, endBrace - bracePos - 1);
+            string symbols = line.substr(bracePos + 1, endBrace - bracePos - 1);
 
             // Split by spaces
-            std::istringstream iss(symbols);
-            std::string token;
-            std::set<std::string> followSet;
+            istringstream iss(symbols);
+            string token;
+            set<string> followSet;
 
             while (iss >> token)
             {
@@ -192,21 +194,21 @@ bool LL1ParsingTableGenerator::loadFirstFollowSets(const std::string &filename)
     return true;
 }
 
-bool LL1ParsingTableGenerator::loadGrammarRules(const std::string &filename)
+bool LL1ParsingTableGenerator::loadGrammarRules(const string &filename)
 {
-    std::ifstream file(filename);
+    ifstream file(filename);
     if (!file.is_open())
     {
-        std::cerr << "Cannot open grammar file: " << filename << std::endl;
+        cerr << "Cannot open grammar file: " << filename << endl;
         return false;
     }
 
-    std::string line;
-    std::string currentLHS;
-    std::vector<std::vector<std::string>> alternatives;
-    std::vector<std::string> currentRHS;
+    string line;
+    string currentLHS;
+    vector<vector<string>> alternatives;
+    vector<string> currentRHS;
 
-    while (std::getline(file, line))
+    while (getline(file, line))
     {
         // Skip empty lines
         if (line.empty())
@@ -218,7 +220,7 @@ bool LL1ParsingTableGenerator::loadGrammarRules(const std::string &filename)
         // Check if line contains production symbol "::="
         size_t prodPos = line.find("::=");
 
-        if (prodPos != std::string::npos)
+        if (prodPos != string::npos)
         {
             // Save previous rule if exists
             if (!currentLHS.empty() && !alternatives.empty())
@@ -243,11 +245,11 @@ bool LL1ParsingTableGenerator::loadGrammarRules(const std::string &filename)
             nonTerminals.insert(currentLHS);
 
             // Parse RHS
-            std::string rhs = line.substr(prodPos + 3);
+            string rhs = line.substr(prodPos + 3);
             trim(rhs);
 
             // Split by alternatives
-            std::vector<std::string> altStrings;
+            vector<string> altStrings;
             splitAlternatives(rhs, altStrings);
 
             // Parse each alternative
@@ -264,7 +266,7 @@ bool LL1ParsingTableGenerator::loadGrammarRules(const std::string &filename)
             trim(line);
 
             // Split by alternatives if any
-            std::vector<std::string> altStrings;
+            vector<string> altStrings;
             splitAlternatives(line, altStrings);
 
             // Parse each alternative
@@ -297,9 +299,9 @@ bool LL1ParsingTableGenerator::loadGrammarRules(const std::string &filename)
     return true;
 }
 
-void LL1ParsingTableGenerator::splitAlternatives(const std::string &str, std::vector<std::string> &alternatives)
+void LL1ParsingTableGenerator::splitAlternatives(const string &str, vector<string> &alternatives)
 {
-    std::string current;
+    string current;
     bool inQuotes = false;
     bool escape = false;
 
@@ -350,9 +352,9 @@ void LL1ParsingTableGenerator::splitAlternatives(const std::string &str, std::ve
     }
 }
 
-void LL1ParsingTableGenerator::parseTokens(const std::string &str, std::vector<std::string> &tokens)
+void LL1ParsingTableGenerator::parseTokens(const string &str, vector<string> &tokens)
 {
-    std::string token;
+    string token;
     bool inQuotes = false;
     bool escape = false;
 
@@ -448,7 +450,7 @@ void LL1ParsingTableGenerator::extractTerminalsFromGrammar()
                     bool allUpper = true;
                     for (char c : token)
                     {
-                        if (!std::isupper(c) && c != '_')
+                        if (!isupper(c) && c != '_')
                         {
                             allUpper = false;
                             break;
@@ -509,14 +511,14 @@ bool LL1ParsingTableGenerator::generateParsingTable()
     // For each production A -> α
     for (const auto &entry : grammarRules)
     {
-        const std::string &A = entry.first;
+        const string &A = entry.first;
 
         for (const auto &rule : entry.second)
         {
             const auto &alpha = rule.rhs;
 
             // Get FIRST(α)
-            std::set<std::string> firstAlpha = computeFirstOfSequence(alpha);
+            set<string> firstAlpha = computeFirstOfSequence(alpha);
 
             // Rule 1: For each terminal a in FIRST(α), add A -> α to M[A, a]
             for (const auto &a : firstAlpha)
@@ -527,14 +529,14 @@ bool LL1ParsingTableGenerator::generateParsingTable()
                     continue;
                 }
 
-                std::pair<std::string, std::string> key = {A, a};
+                pair<string, string> key = {A, a};
                 if (parsingTable.find(key) != parsingTable.end())
                 {
                     if (parsingTable[key] != "Error")
                     {
                         // Conflict - not LL(1)
-                        std::cerr << "LL(1) Conflict at [" << A << ", " << a << "]: "
-                                  << parsingTable[key] << " vs " << rule.originalString << std::endl;
+                        cerr << "LL(1) Conflict at [" << A << ", " << a << "]: "
+                                  << parsingTable[key] << " vs " << rule.originalString << endl;
                         isLL1 = false;
                     }
                     else
@@ -555,14 +557,14 @@ bool LL1ParsingTableGenerator::generateParsingTable()
                         if (b == LAMBDA)
                             continue; // Skip epsilon from follow sets
 
-                        std::pair<std::string, std::string> key = {A, b};
+                        pair<string, string> key = {A, b};
                         if (parsingTable.find(key) != parsingTable.end())
                         {
                             if (parsingTable[key] != "Error")
                             {
                                 // Conflict - not LL(1)
-                                std::cerr << "LL(1) Conflict at [" << A << ", " << b << "]: "
-                                          << parsingTable[key] << " vs " << rule.originalString << std::endl;
+                                cerr << "LL(1) Conflict at [" << A << ", " << b << "]: "
+                                          << parsingTable[key] << " vs " << rule.originalString << endl;
                                 isLL1 = false;
                             }
                             else
@@ -574,7 +576,7 @@ bool LL1ParsingTableGenerator::generateParsingTable()
                 }
 
                 // Also handle $ specifically
-                std::pair<std::string, std::string> key = {A, "$"};
+                pair<string, string> key = {A, "$"};
                 if (parsingTable.find(key) != parsingTable.end() && parsingTable[key] == "Error")
                 {
                     // Check if $ is in FOLLOW(A)
@@ -598,9 +600,9 @@ bool LL1ParsingTableGenerator::generateParsingTable()
     return isLL1;
 }
 
-std::set<std::string> LL1ParsingTableGenerator::computeFirstOfSequence(const std::vector<std::string> &sequence)
+set<string> LL1ParsingTableGenerator::computeFirstOfSequence(const vector<string> &sequence)
 {
-    std::set<std::string> result;
+    set<string> result;
 
     if (sequence.empty())
     {
@@ -682,9 +684,9 @@ std::set<std::string> LL1ParsingTableGenerator::computeFirstOfSequence(const std
     return result;
 }
 
-std::string LL1ParsingTableGenerator::formatProduction(const std::string &lhs, const std::vector<std::string> &rhs)
+string LL1ParsingTableGenerator::formatProduction(const string &lhs, const vector<string> &rhs)
 {
-    std::string result = lhs + " ::= ";
+    string result = lhs + " ::= ";
 
     if (rhs.empty() || (rhs.size() == 1 && (rhs[0] == LAMBDA || rhs[0] == EPSILON)))
     {
@@ -712,17 +714,17 @@ std::string LL1ParsingTableGenerator::formatProduction(const std::string &lhs, c
     return result;
 }
 
-void LL1ParsingTableGenerator::writeParsingTable(const std::string &filename)
+void LL1ParsingTableGenerator::writeParsingTable(const string &filename)
 {
-    std::ofstream file(filename);
+    ofstream file(filename);
     if (!file.is_open())
     {
-        std::cerr << "Cannot open output file: " << filename << std::endl;
+        cerr << "Cannot open output file: " << filename << endl;
         return;
     }
 
     // Create a sorted list of terminals for columns
-    std::vector<std::string> sortedTerminals;
+    vector<string> sortedTerminals;
     for (const auto &terminal : terminals)
     {
         sortedTerminals.push_back(terminal);
@@ -731,56 +733,56 @@ void LL1ParsingTableGenerator::writeParsingTable(const std::string &filename)
     sortedTerminals.push_back("$");
 
     // Sort terminals alphabetically, but keep $ at the end
-    std::sort(sortedTerminals.begin(), sortedTerminals.end() - 1);
+    sort(sortedTerminals.begin(), sortedTerminals.end() - 1);
 
     // Calculate column width for terminal headers
     size_t terminalWidth = 50;
     for (const auto &terminal : sortedTerminals)
     {
-        terminalWidth = std::max(terminalWidth, terminal.length() + 2);
+        terminalWidth = max(terminalWidth, terminal.length() + 2);
     }
 
     // Calculate non-terminal column width
     size_t nonTerminalWidth = 25;
     for (const auto &nonTerminal : nonTerminals)
     {
-        nonTerminalWidth = std::max(nonTerminalWidth, nonTerminal.length() + 2);
+        nonTerminalWidth = max(nonTerminalWidth, nonTerminal.length() + 2);
     }
 
     // Write header
-    std::string separator(terminalWidth * sortedTerminals.size() + nonTerminalWidth + 3, '=');
-    file << separator << std::endl;
-    file << std::setw((separator.length() - 16) / 2) << "" << "LL(1) PARSING TABLE" << std::endl;
-    file << separator << std::endl;
+    string separator(terminalWidth * sortedTerminals.size() + nonTerminalWidth + 3, '=');
+    file << separator << endl;
+    file << setw((separator.length() - 16) / 2) << "" << "LL(1) PARSING TABLE" << endl;
+    file << separator << endl;
 
     // Write column headers
-    file << std::left << std::setw(nonTerminalWidth) << "Non-Terminal" << "|";
+    file << left << setw(nonTerminalWidth) << "Non-Terminal" << "|";
     for (const auto &terminal : sortedTerminals)
     {
-        file << std::setw(terminalWidth) << terminal;
+        file << setw(terminalWidth) << terminal;
     }
-    file << std::endl;
+    file << endl;
 
     // Write separator line
-    file << std::string(nonTerminalWidth, '-') << "+";
+    file << string(nonTerminalWidth, '-') << "+";
     for (size_t i = 0; i < sortedTerminals.size(); ++i)
     {
-        file << std::string(terminalWidth, '-');
+        file << string(terminalWidth, '-');
     }
-    file << std::endl;
+    file << endl;
 
     // Write table rows for each non-terminal
-    std::vector<std::string> sortedNonTerminals(nonTerminals.begin(), nonTerminals.end());
-    std::sort(sortedNonTerminals.begin(), sortedNonTerminals.end());
+    vector<string> sortedNonTerminals(nonTerminals.begin(), nonTerminals.end());
+    sort(sortedNonTerminals.begin(), sortedNonTerminals.end());
 
     for (const auto &nonTerminal : sortedNonTerminals)
     {
-        file << std::left << std::setw(nonTerminalWidth) << nonTerminal << "|";
+        file << left << setw(nonTerminalWidth) << nonTerminal << "|";
 
         for (const auto &terminal : sortedTerminals)
         {
-            std::pair<std::string, std::string> key = {nonTerminal, terminal};
-            std::string entry = "Error";
+            pair<string, string> key = {nonTerminal, terminal};
+            string entry = "Error";
 
             if (parsingTable.find(key) != parsingTable.end())
             {
@@ -793,21 +795,21 @@ void LL1ParsingTableGenerator::writeParsingTable(const std::string &filename)
                 }
             }
 
-            file << std::setw(terminalWidth) << entry;
+            file << setw(terminalWidth) << entry;
         }
-        file << std::endl;
+        file << endl;
     }
 
     // Write footer
-    file << separator << std::endl;
+    file << separator << endl;
 
     file.close();
 }
 
-void LL1ParsingTableGenerator::trim(std::string &str)
+void LL1ParsingTableGenerator::trim(string &str)
 {
     size_t start = str.find_first_not_of(" \t\n\r");
-    if (start == std::string::npos)
+    if (start == string::npos)
     {
         str.clear();
         return;

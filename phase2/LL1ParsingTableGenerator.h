@@ -6,6 +6,8 @@
 #include <set>
 #include <vector>
 
+using namespace std;
+
 /**
  * @class LL1ParsingTableGenerator
  * @brief Generates LL(1) parsing tables from first/follow sets and grammar rules
@@ -41,16 +43,16 @@ public:
      *
      * If the grammar is not LL(1), an error message is printed to stderr.
      */
-    void generate(const std::string &firstFollowFile,
-                  const std::string &grammarFile,
-                  const std::string &outputFile);
+    void generate(const string &firstFollowFile,
+                  const string &grammarFile,
+                  const string &outputFile);
 
     // getters
-    const std::map<std::pair<std::string, std::string>, std::string> &getParsingTable() const { return parsingTable; }
-    const std::set<std::string> &getTerminals() const { return terminals; }
-    const std::set<std::string> &getNonTerminals() const { return nonTerminals; }
-    const std::map<std::string, std::set<std::string>> &getFirstSets() const { return firstSets; }
-    const std::map<std::string, std::set<std::string>> &getFollowSets() const { return followSets; }
+    const map<pair<string, string>, string> &getParsingTable() const { return parsingTable; }
+    const set<string> &getTerminals() const { return terminals; }
+    const set<string> &getNonTerminals() const { return nonTerminals; }
+    const map<string, set<string>> &getFirstSets() const { return firstSets; }
+    const map<string, set<string>> &getFollowSets() const { return followSets; }
 
 
 private:
@@ -63,24 +65,24 @@ private:
      */
     struct Rule
     {
-        std::string lhs;              ///< Left-hand side of the rule
-        std::vector<std::string> rhs; ///< Right-hand side symbols
-        std::string originalString;   ///< Formatted string representation of this specific production
+        string lhs;              ///< Left-hand side of the rule
+        vector<string> rhs; ///< Right-hand side symbols
+        string originalString;   ///< Formatted string representation of this specific production
     };
 
     // Data structures
-    std::map<std::string, std::set<std::string>> firstSets;                  ///< First sets for non-terminals
-    std::map<std::string, std::set<std::string>> followSets;                 ///< Follow sets for non-terminals
-    std::map<std::string, std::vector<Rule>> grammarRules;                   ///< Grammar rules grouped by LHS (each alternative stored separately)
-    std::set<std::string> nonTerminals;                                      ///< Set of all non-terminals
-    std::set<std::string> terminals;                                         ///< Set of all terminals
-    std::map<std::pair<std::string, std::string>, std::string> parsingTable; ///< The parsing table [non-terminal][terminal] -> production
+    map<string, set<string>> firstSets;                  ///< First sets for non-terminals
+    map<string, set<string>> followSets;                 ///< Follow sets for non-terminals
+    map<string, vector<Rule>> grammarRules;                   ///< Grammar rules grouped by LHS (each alternative stored separately)
+    set<string> nonTerminals;                                      ///< Set of all non-terminals
+    set<string> terminals;                                         ///< Set of all terminals
+    map<pair<string, string>, string> parsingTable; ///< The parsing table [non-terminal][terminal] -> production
 
     // Constants
-    const std::string LAMBDA = "\\L"; ///< Lambda symbol representation
-    const std::string EPSILON = "ε";  ///< Epsilon symbol representation
+    const string LAMBDA = "\\L"; ///< Lambda symbol representation
+    const string EPSILON = "ε";  ///< Epsilon symbol representation
 
-    const std::map<std::string, std::vector<Rule>> &getGrammarRules() const { return grammarRules; }
+    const map<string, vector<Rule>> &getGrammarRules() const { return grammarRules; }
 
     /**
      * @brief Loads first and follow sets from a file
@@ -92,7 +94,7 @@ private:
      * First(SYMBOL) = { token1 token2 ... }
      * Follow(SYMBOL) = { token1 token2 ... }
      */
-    bool loadFirstFollowSets(const std::string &filename);
+    bool loadFirstFollowSets(const string &filename);
 
     /**
      * @brief Loads grammar rules from a file
@@ -105,7 +107,7 @@ private:
      * Supports multi-line rules and escape sequences.
      * Each alternative is stored as a separate Rule object.
      */
-    bool loadGrammarRules(const std::string &filename);
+    bool loadGrammarRules(const string &filename);
 
     /**
      * @brief Splits a string into alternatives separated by | while respecting quoted terminals
@@ -116,7 +118,7 @@ private:
      * Example: "A | B | C" -> ["A", "B", "C"]
      * The method properly handles quoted terminals so that '|' inside quotes is not treated as a separator.
      */
-    void splitAlternatives(const std::string &str, std::vector<std::string> &alternatives);
+    void splitAlternatives(const string &str, vector<string> &alternatives);
 
     /**
      * @brief Parses a string into tokens for grammar rules
@@ -127,7 +129,7 @@ private:
      * Handles quoted terminals, escape sequences, and spaces.
      * Example: "'int' IDENTIFIER" -> ["'int'", "IDENTIFIER"]
      */
-    void parseTokens(const std::string &str, std::vector<std::string> &tokens);
+    void parseTokens(const string &str, vector<string> &tokens);
 
     /**
      * @brief Extracts terminal symbols from the grammar rules
@@ -158,7 +160,7 @@ private:
      * @param sequence The sequence of symbols
      * @return Set of terminals that can begin strings derived from the sequence
      */
-    std::set<std::string> computeFirstOfSequence(const std::vector<std::string> &sequence);
+    set<string> computeFirstOfSequence(const vector<string> &sequence);
 
     /**
      * @brief Creates a formatted string for a production rule
@@ -167,7 +169,7 @@ private:
      * @param rhs The right-hand side symbols
      * @return Formatted string "LHS ::= RHS"
      */
-    std::string formatProduction(const std::string &lhs, const std::vector<std::string> &rhs);
+    string formatProduction(const string &lhs, const vector<string> &rhs);
 
     /**
      * @brief Writes the parsing table to a file
@@ -178,14 +180,14 @@ private:
      * terminals as columns, and production rules as entries.
      * The table is formatted to match the specified output format.
      */
-    void writeParsingTable(const std::string &filename);
+    void writeParsingTable(const string &filename);
 
     /**
      * @brief Trims whitespace from a string
      *
      * @param str The string to trim (modified in place)
      */
-    void trim(std::string &str);
+    void trim(string &str);
 
     // Make the class non-copyable
     LL1ParsingTableGenerator(const LL1ParsingTableGenerator &) = delete;

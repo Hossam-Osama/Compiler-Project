@@ -87,6 +87,8 @@ int main()
 
         string startSymbol = grammar.begin()->first;
 
+        cout <<"Start symbol: " + startSymbol + "\n";
+
         map<string, set<string>> first, follow;
         calculateFirst(grammar, first);
         calculateFollow(grammar, first, follow, startSymbol);
@@ -113,6 +115,7 @@ int main()
         firstFollowFile.close();
         cout << "First and Follow sets written to '" << first_follow_file << "'." << endl;
 
+//       Hima Code
         LL1ParsingTableGenerator parsingTableGenerator;
         parsingTableGenerator.generate(
             first_follow_file,
