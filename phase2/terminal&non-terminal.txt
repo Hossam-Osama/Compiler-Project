@@ -2,13 +2,15 @@ Item: '(' (Terminal)
 
 Item: ')' (Terminal)
 
+Item: '+' (Terminal)
+
+Item: '-' (Terminal)
+
 Item: ';' (Terminal)
 
-Item: '\L' (Terminal)
+Item: '=' (Terminal)
 
 Item: 'addop' (Terminal)
-
-Item: 'assign' (Terminal)
 
 Item: 'else' (Terminal)
 
@@ -33,21 +35,14 @@ Item: '{' (Terminal)
 Item: '}' (Terminal)
 
 Item: ASSIGNMENT (Non-terminal)
-  Production: 'id' 'assign' EXPRESSION ';' 
-
-Item: BUFFER1 (Non-terminal)
-  Production: '\L' 
-  Production: 'relop' SIMPLE_EXPRESSION 
-
-Item: BUFFER2 (Non-terminal)
-  Production: TERM 
-  Production: SIGN TERM 
+  Production: 'id' '=' EXPRESSION ';' 
 
 Item: DECLARATION (Non-terminal)
   Production: PRIMITIVE_TYPE 'id' ';' 
 
 Item: EXPRESSION (Non-terminal)
-  Production: SIMPLE_EXPRESSION BUFFER1 
+  Production: SIMPLE_EXPRESSION 
+  Production: SIMPLE_EXPRESSION 'relop' SIMPLE_EXPRESSION 
 
 Item: FACTOR (Non-terminal)
   Production: 'id' 
@@ -65,14 +60,13 @@ Item: PRIMITIVE_TYPE (Non-terminal)
   Production: 'float' 
 
 Item: SIGN (Non-terminal)
-  Production: 'addop' 
+  Production: '+' 
+  Production: '-' 
 
 Item: SIMPLE_EXPRESSION (Non-terminal)
-  Production: BUFFER2 SIMPLE_EXPRESSION_DASH 
-
-Item: SIMPLE_EXPRESSION_DASH (Non-terminal)
-  Production: 'addop' TERM SIMPLE_EXPRESSION_DASH 
-  Production: '\L' 
+  Production: TERM 
+  Production: SIGN TERM 
+  Production: SIMPLE_EXPRESSION 'addop' TERM 
 
 Item: STATEMENT (Non-terminal)
   Production: DECLARATION 
@@ -81,18 +75,12 @@ Item: STATEMENT (Non-terminal)
   Production: ASSIGNMENT 
 
 Item: STATEMENT_LIST (Non-terminal)
-  Production: STATEMENT STATEMENT_LIST_DASH 
-
-Item: STATEMENT_LIST_DASH (Non-terminal)
-  Production: STATEMENT STATEMENT_LIST_DASH 
-  Production: '\L' 
+  Production: STATEMENT 
+  Production: STATEMENT_LIST STATEMENT 
 
 Item: TERM (Non-terminal)
-  Production: FACTOR TERM_DASH 
-
-Item: TERM_DASH (Non-terminal)
-  Production: 'mulop' FACTOR TERM_DASH 
-  Production: '\L' 
+  Production: FACTOR 
+  Production: TERM 'mulop' FACTOR 
 
 Item: WHILE (Non-terminal)
   Production: 'while' '(' EXPRESSION ')' '{' STATEMENT '}' 

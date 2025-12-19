@@ -1,5 +1,6 @@
 #include <string>
 #include <vector>
+#include <set>
 
 class Item {
 public:
@@ -116,6 +117,20 @@ void CFGParser::cleanGrammar(const std::string& filename, const std::string& cle
 
     while (std::getline(inputFile, line)) {
         line = processor.trim(line);
+
+        // Replace curly quotes with straight quotes
+        size_t pos = 0;
+        std::string left_quote = "‘";
+        std::string right_quote = "’";
+        while ((pos = line.find(left_quote, pos)) != std::string::npos) {
+            line.replace(pos, left_quote.length(), "'");
+            pos += 1; // move past the replacement
+        }
+        pos = 0;
+        while ((pos = line.find(right_quote, pos)) != std::string::npos) {
+            line.replace(pos, right_quote.length(), "'");
+            pos += 1;
+        }
 
         if (line.empty()) {
             continue;
@@ -429,4 +444,174 @@ std::map<std::string, Item*> CFGParser::getGrammar() {
         std::cerr << "\033[31mError: Grammar is empty. Make sure you parse the grammar first.\033[0m" << std::endl;
     }
     return CFG;
+}
+
+
+// State implementations
+State::State() {
+  // ctor
+}
+
+State::~State() {
+  // Clear transitions to avoid dangling pointers
+  for (auto& transition : transitions) {
+    transition.second.clear();  // Clear vector of pointers
+  }
+  transitions.clear();  // Clear the map itself
+}
+
+void State::add_transition(char a, State* state) {
+  if (transitions.find(a) == transitions.end()) {
+    vector<State*> v;
+    transitions[a] = v;
+  }
+  transitions[a].push_back(state);
+}
+
+void State::print_recursive(set<const State*>& visited) const {
+  cout << this << endl;
+  if (visited.count(this)) {
+    cout << "(already visited)" << endl;
+    return;
+  }
+
+  visited.insert(this);
+
+  cout << "Is Accepted: " << (is_accepted ? "Yes" : "No") << endl;
+  cout << "Transitions:";
+
+  for (const auto& [action, states] : transitions) {
+    cout << "     Action: " << action << " -> ";
+    for (const auto& state : states) {
+      cout << state << " ";
+    }
+    cout << endl;
+
+    for (const auto& state : states) {
+      if (state) {
+        cout << endl << "Recursing into state: ";
+        state->print_recursive(visited);
+      }
+    }
+  }
+
+  cout << "Exiting print_recursive for state: " << this << endl;
+}
+
+void State::print_state_info() const {
+  cout << "State Info: " << endl;
+  cout << "state: " << this << endl;
+  cout << "Is Accepted: " << (is_accepted ? "Yes" : "No") << endl;
+  cout << "Is invalid: " << (is_invalid ? "Yes" : "No") << endl;
+  cout << "Accepted Rule: " << (accepted_rule.empty() ? "None" : accepted_rule) << endl;
+  cout << "Transitions: " << endl;
+
+  for (const auto& transition : transitions) {
+    cout << "  Action: " << transition.first << " -> States: ";
+    for (State* state : transition.second) {
+      cout << state << " ";  // This prints the memory address of the state
+    }
+    cout << endl;
+  }
+}
+
+// StringProcessor implementations
+StringProcessor::StringProcessor() {
+  // ctor
+}
+
+StringProcessor::~StringProcessor() {
+  // dtor
+}
+
+void StringProcessor::skip_unnecessary_spaces(int& i, string rule_definition) {
+  while (i + 1 < (int)rule_definition.size() && rule_definition[i + 1] == ' ')
+    i++;
+}
+
+vector<string> StringProcessor::read_rules(string address) {
+  vector<string> lines;
+  ifstream file(address);
+  if (!file.is_open()) {
+    cerr << "Error: Could not open the file: " << address << endl;
+    return lines;
+  }
+
+  string line;
+  while (getline(file, line)) {
+    lines.push_back(line);
+  }
+
+  file.close();
+  return lines;
+}
+
+string StringProcessor::remove_backslash(string org) {
+  string to_remove_back_slash = "";
+  if (org[0] == '\\' && org[1] == 'L')
+    to_remove_back_slash = EPSILON;
+  else {
+    for (int i = 0; i < (int)org.size(); i++) {
+      char c = org[i];
+      if (!(c == '\\') || (i > 0 && org[i - 1] == '\\'))
+        to_remove_back_slash += c;
+    }
+  }
+  return to_remove_back_slash;
+}
+
+string StringProcessor::trim(const string& str) {
+  size_t start = str.find_first_not_of(" \t\n\r");
+  if (start == std::string::npos) return "";
+  size_t end = str.find_last_not_of(" \t\n\r");
+  return str.substr(start, end - start + 1);
+}
+
+vector<string> StringProcessor::string_processor(const string& input) {
+  string trimmed_input = input;
+
+  if ((trimmed_input.front() == '{' && trimmed_input.back() == '}') ||
+      (trimmed_input.front() == '[' && trimmed_input.back() == ']')) {
+    trimmed_input = trimmed_input.substr(1, trimmed_input.size() - 2);
+  }
+//  cout << trimmed_input << endl;
+  vector<string> result;
+  istringstream iss(trimmed_input);
+  string token;
+
+  while (iss >> token) {
+    result.push_back(token);
+  }
+
+  return result;
+}
+
+// NonTerminal implementations
+NonTerminal::NonTerminal(const std::string& name) : name(name) {}
+
+std::string NonTerminal::getName() const {
+    return name;
+}
+
+void NonTerminal::addProduction(const std::vector<Item*>& production) {
+    productions.push_back(production);
+}
+
+const std::vector<std::vector<Item*>>& NonTerminal::getProductions() {
+    return productions;
+}
+
+bool NonTerminal::isEqual(Item* item) const {
+    return item->getName() == name;
+}
+
+// Terminal implementations
+Terminal::Terminal(const std::string& name) : name(name) {}
+
+std::string Terminal::getName() const {
+    return name;
+}
+
+bool Terminal::isEqual(Item* item) const {
+    return item->getName() == name;
 }
