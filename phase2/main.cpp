@@ -33,23 +33,31 @@ int main()
         string token_stream_file = "result.txt";
         string parsingTableFile = "parsing_table.txt";
         string testphase2_file = "test_phase2.txt";
+        string cleaned_grammar_file = "cleaned_grammar.txt";
+        string terminalsNonTerminalsFile = "terminal&non-terminal.txt";
 
         CFGParser parser;
-        parser.cleanGrammar(my_grammer_file, "cleaned_grammar.txt");
-        auto cfg_grammar = parser.parseGrammar("cleaned_grammar.txt");
+        parser.cleanGrammar(my_grammer_file, cleaned_grammar_file);
+        auto cfg_grammar = parser.parseGrammar(cleaned_grammar_file);
         string startSymbol = parser.getStartSymbolName();
 
         // Convert CFGParser grammar to the expected format
-        for (auto& pair : cfg_grammar) {
-            if (pair.second->getName()[0] != '\'') { // Non-terminal
-                NonTerminal* nt = dynamic_cast<NonTerminal*>(pair.second);
-                if (nt) {
+        for (auto &pair : cfg_grammar)
+        {
+            if (pair.second->getName()[0] != '\'')
+            { // Non-terminal
+                NonTerminal *nt = dynamic_cast<NonTerminal *>(pair.second);
+                if (nt)
+                {
                     vector<vector<string>> prods;
-                    for (auto& prod : nt->getProductions()) {
+                    for (auto &prod : nt->getProductions())
+                    {
                         vector<string> p;
-                        for (Item* item : prod) {
+                        for (Item *item : prod)
+                        {
                             string name = item->getName();
-                            if (name[0] == '\'') {
+                            if (name[0] == '\'')
+                            {
                                 name = name.substr(1);
                             }
                             p.push_back(name);
@@ -66,7 +74,7 @@ int main()
             throw runtime_error("No grammar rules provided.");
         }
 
-        cout <<"Start symbol: " + startSymbol + "\n";
+        cout << "Start symbol: " + startSymbol + "\n";
 
         map<string, set<string>> first, follow;
         calculateFirst(grammar, first);
@@ -102,11 +110,11 @@ int main()
         firstFollowFile.close();
         cout << "First and Follow sets written to '" << first_follow_file << "'." << endl;
 
-//       Hima Code
+        // Epsilone is represented as \L in the files
         LL1ParsingTableGenerator parsingTableGenerator;
         parsingTableGenerator.generate(
             first_follow_file,
-            my_grammer_file,
+            terminalsNonTerminalsFile,
             parsingTableFile);
 
         map<pair<string, string>, string> parsingTable = parsingTableGenerator.getParsingTable();
@@ -115,8 +123,8 @@ int main()
             cout << entry.first.first << " -> " << entry.first.second << " -> " << entry.second << endl;
         }
 
-    // mohamed code
-    //start here use parsingTableFile ,testphase2_file , parsingTable
+        // mohamed code
+        // start here use parsingTableFile ,testphase2_file , parsingTable
     }
     catch (const exception &e)
     {
