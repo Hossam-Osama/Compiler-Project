@@ -299,12 +299,12 @@ bool LL1ParsingTableGenerator::generateParsingTable()
     bool isLL1 = true;
     vector<string> conflictMessages;
 
-    // Initialize parsing table with "Error" for all non-terminal/terminal pairs
+    // Initialize parsing table with "EMPTY" for all non-terminal/terminal pairs
     for (const auto &nonTerminal : nonTerminals)
     {
         for (const auto &terminal : terminals)
         {
-            parsingTable[{nonTerminal, terminal}] = "Error";
+            parsingTable[{nonTerminal, terminal}] = "EMPTY";
         }
     }
 
@@ -348,7 +348,7 @@ bool LL1ParsingTableGenerator::generateParsingTable()
                 pair<string, string> key = {A, terminalForTable};
                 if (parsingTable.find(key) != parsingTable.end())
                 {
-                    if (parsingTable[key] != "Error")
+                    if (parsingTable[key] != "EMPTY")
                     {
                         // Conflict - not LL(1)
                         string conflictMsg = "LL(1) Conflict at [" + A + ", " + terminalForTable + "]: " +
@@ -401,7 +401,7 @@ bool LL1ParsingTableGenerator::generateParsingTable()
                         pair<string, string> key = {A, terminalForTable};
                         if (parsingTable.find(key) != parsingTable.end())
                         {
-                            if (parsingTable[key] != "Error")
+                            if (parsingTable[key] != "EMPTY")
                             {
                                 // Conflict - not LL(1)
                                 string conflictMsg = "LL(1) Conflict at [" + A + ", " + terminalForTable + "]: " +
@@ -616,7 +616,7 @@ void LL1ParsingTableGenerator::writeParsingTable(const string &filename)
         for (const auto &terminal : sortedTerminals)
         {
             pair<string, string> key = {nonTerminal, terminal};
-            string entry = "Error";
+            string entry = "EMPTY";
 
             if (parsingTable.find(key) != parsingTable.end())
             {
