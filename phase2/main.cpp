@@ -19,16 +19,20 @@ vector<string> split(const string &str, char delimiter);
 vector<string> tokenize(const string &production);
 void calculateFirst(const map<string, vector<vector<string>>> &grammar, map<string, set<string>> &first);
 void calculateFollow(const map<string, vector<vector<string>>> &grammar, const map<string, set<string>> &first, map<string, set<string>> &follow, const string &startSymbol);
+extern void run_phase1();
 
 int main()
 {
+    run_phase1();
+
     try
     {
         map<string, vector<vector<string>>> grammar;
         string my_grammer_file = "my_grammer.txt";
         string first_follow_file = "first_follow_data.txt";
-        string token_stream_file = "../phase1/result.txt";
+        string token_stream_file = "result.txt";
         string parsingTableFile = "parsing_table.txt";
+        string testphase2_file = "test_phase2.txt";
 
         CFGParser parser;
         parser.cleanGrammar(my_grammer_file, "cleaned_grammar.txt");
@@ -110,6 +114,9 @@ int main()
         {
             cout << entry.first.first << " -> " << entry.first.second << " -> " << entry.second << endl;
         }
+
+    // mohamed code
+    //start here use parsingTableFile ,testphase2_file , parsingTable
     }
     catch (const exception &e)
     {

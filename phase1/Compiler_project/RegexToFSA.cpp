@@ -59,7 +59,7 @@ std::vector<std::string> tokenizeString(const std::string& input) {
 
 
 
-std::string trim(const std::string& str) {
+std::string ttrim(const std::string& str) {
     size_t first = str.find_first_not_of(" \t\n\r\f\v");  // Find the first non-whitespace character
     if (first == std::string::npos)  // If no non-whitespace character is found, return an empty string
         return "";
@@ -223,7 +223,7 @@ NFS changeNfsStatesName(NFS nfs){
     return result;
 }
 NFS regexToNFS(string regex , map<string,NFS>& def) {
-     regex = trim(regex);
+     regex = ttrim(regex);
      vector<string> regexArray= tokenizeString(regex);
      map<string,NFS> tempMap;
      while(findIndex(regexArray,"-")!=-1){
@@ -487,7 +487,7 @@ NFS filetoFSA(){
             def.insert({Line.substr(0,Line.find(" =")),regexToNFS(Line.substr(Line.find(" =")+2,Line.size()),def)});
         }
         else if(Line[0]=='{'||Line[0]=='['){
-            vector<string> keyWords = splitByWhitespace(trim(Line.substr(1,Line.length()-2)));
+            vector<string> keyWords = splitByWhitespace(ttrim(Line.substr(1,Line.length()-2)));
             for (string keyWord : keyWords) {
                 if(keyWord[0]=='\\')
                 keyWord=keyWord.substr(1);
