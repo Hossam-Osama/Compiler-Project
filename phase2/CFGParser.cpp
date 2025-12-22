@@ -68,11 +68,17 @@ public:
     void cleanGrammar(const std::string& filename, const std::string& cleanFilename);
     std::map<std::string, Item*> parseGrammar(const std::string& filename);
     bool debugParser(const std::string& filename);
+    void transformToLL1(const std::string &inputFilename, const std::string &outputFilename);
     std::string getStartSymbolName();
     std::map<std::string, Item*> getGrammar();
 private:
     std::string startSymbolName;
     std::map<std::string, Item*> CFG;
+    bool startsWithPrefix(const std::vector<std::string> &production, const std::vector<std::string> &prefix);
+    std::vector<std::string> tokenizeProduction(const std::string &production);
+    void eliminateLeftRecursion(std::map<std::string, std::vector<std::vector<std::string>>> &grammarRules, std::vector<std::string> &ruleOrder);
+    void performLeftFactoring(std::map<std::string, std::vector<std::vector<std::string>>> &grammarRules, std::vector<std::string> &ruleOrder);
+    std::vector<std::string> findCommonPrefix(const std::vector<std::string> &prod1, const std::vector<std::string> &prod2);
 };
 #include <fstream>
 #include <sstream>
@@ -363,6 +369,462 @@ std::map<std::string, Item*> CFGParser::parseGrammar(const std::string& cleanFil
     return grammar;
 }
 
+
+// /**
+//  * @brief Transforms a CFG into LL(1) form by eliminating left recursion and performing left factoring.
+//  *
+//  * @param inputFilename The cleaned grammar file to transform.
+//  * @param outputFilename The output file for the LL(1) grammar.
+//  */
+// void CFGParser::transformToLL1(const std::string& inputFilename, const std::string& outputFilename) {
+//     StringProcessor processor;
+//     std::ifstream inputFile(inputFilename);
+//     if (!inputFile.is_open()) {
+//         std::cerr << "Error: Could not open file " << inputFilename << std::endl;
+//         return;
+//     }
+
+//     // Store grammar rules as map: LHS -> vector of productions (each production is vector of tokens)
+//     std::map<std::string, std::vector<std::vector<std::string>>> grammarRules;
+//     std::vector<std::string> ruleOrder; // To preserve order of rules
+//     std::string line;
+
+//     // Parse the input grammar
+//     while (std::getline(inputFile, line)) {
+//         line = processor.trim(line);
+//         if (line.empty()) continue;
+
+//         size_t equalPos = line.find('=');
+//         if (equalPos == std::string::npos) continue;
+
+//         std::string lhs = processor.trim(line.substr(0, equalPos));
+//         std::string rhs = processor.trim(line.substr(equalPos + 1));
+
+//         if (grammarRules.find(lhs) == grammarRules.end()) {
+//             ruleOrder.push_back(lhs);
+//         }
+
+//         // Split RHS by '|' and tokenize each production
+//         std::vector<std::vector<std::string>> productions;
+//         std::string currentProduction;
+//         bool insideQuotes = false;
+
+//         for (size_t i = 0; i < rhs.size(); ++i) {
+//             char c = rhs[i];
+//             if (c == '\'') {
+//                 insideQuotes = !insideQuotes;
+//                 currentProduction += c;
+//             } else if (c == '|' && !insideQuotes) {
+//                 if (!currentProduction.empty()) {
+//                     productions.push_back(tokenizeProduction(processor.trim(currentProduction)));
+//                     currentProduction.clear();
+//                 }
+//             } else {
+//                 currentProduction += c;
+//             }
+//         }
+//         if (!currentProduction.empty()) {
+//             productions.push_back(tokenizeProduction(processor.trim(currentProduction)));
+//         }
+
+//         grammarRules[lhs] = productions;
+//     }
+//     inputFile.close();
+
+//     // Step 1: Eliminate left recursion
+//     std::cout << "Eliminating left recursion..." << std::endl;
+//     eliminateLeftRecursion(grammarRules, ruleOrder);
+
+//     // Step 2: Perform left factoring
+//     std::cout << "Performing left factoring..." << std::endl;
+//     performLeftFactoring(grammarRules, ruleOrder);
+
+//     // Write the transformed grammar to output file
+//     std::ofstream outputFile(outputFilename);
+//     if (!outputFile.is_open()) {
+//         std::cerr << "Error: Could not open output file " << outputFilename << std::endl;
+//         return;
+//     }
+
+//     for (const std::string& lhs : ruleOrder) {
+//         if (grammarRules.find(lhs) != grammarRules.end()) {
+//             outputFile << lhs << " = ";
+//             const auto& productions = grammarRules[lhs];
+//             for (size_t i = 0; i < productions.size(); ++i) {
+//                 for (size_t j = 0; j < productions[i].size(); ++j) {
+//                     outputFile << productions[i][j];
+//                     if (j < productions[i].size() - 1) outputFile << " ";
+//                 }
+//                 if (i < productions.size() - 1) outputFile << " | ";
+//             }
+//             outputFile << std::endl;
+//         }
+//     }
+//     outputFile.close();
+//     std::cout << "LL(1) grammar written to " << outputFilename << std::endl;
+// }
+
+/**
+ * @brief Transforms a CFG into LL(1) form by eliminating ALL left recursion (immediate and non-immediate) 
+ *        and performing left factoring.
+ *
+ * This implements the complete algorithm:
+ * 1. Order non-terminals A₁, A₂, ..., Aₙ
+ * 2. For i from 1 to n:
+ *      For j from 1 to i-1:
+ *        Replace each production Aᵢ → Aⱼγ by Aᵢ → α₁γ | α₂γ | ... | αₖγ
+ *        where Aⱼ → α₁ | α₂ | ... | αₖ
+ *      Eliminate immediate left recursion among Aᵢ productions
+ * 3. Perform left factoring
+ *
+ * @param inputFilename The cleaned grammar file to transform.
+ * @param outputFilename The output file for the LL(1) grammar.
+ */
+void CFGParser::transformToLL1(const std::string& inputFilename, const std::string& outputFilename) {
+    StringProcessor processor;
+    std::ifstream inputFile(inputFilename);
+    if (!inputFile.is_open()) {
+        std::cerr << "Error: Could not open file " << inputFilename << std::endl;
+        return;
+    }
+
+    // Store grammar rules as map: LHS -> vector of productions (each production is vector of tokens)
+    std::map<std::string, std::vector<std::vector<std::string>>> grammarRules;
+    std::vector<std::string> ruleOrder; // To preserve order of rules (A₁, A₂, ..., Aₙ)
+    std::string line;
+
+    // ==================== STEP 1: Parse the input grammar ====================
+    while (std::getline(inputFile, line)) {
+        line = processor.trim(line);
+        if (line.empty()) continue;
+
+        size_t equalPos = line.find('=');
+        if (equalPos == std::string::npos) continue;
+
+        std::string lhs = processor.trim(line.substr(0, equalPos));
+        std::string rhs = processor.trim(line.substr(equalPos + 1));
+
+        if (grammarRules.find(lhs) == grammarRules.end()) {
+            ruleOrder.push_back(lhs);
+        }
+
+        // Split RHS by '|' and tokenize each production
+        std::vector<std::vector<std::string>> productions;
+        std::string currentProduction;
+        bool insideQuotes = false;
+
+        for (size_t i = 0; i < rhs.size(); ++i) {
+            char c = rhs[i];
+            if (c == '\'') {
+                insideQuotes = !insideQuotes;
+                currentProduction += c;
+            } else if (c == '|' && !insideQuotes) {
+                if (!currentProduction.empty()) {
+                    productions.push_back(tokenizeProduction(processor.trim(currentProduction)));
+                    currentProduction.clear();
+                }
+            } else {
+                currentProduction += c;
+            }
+        }
+        if (!currentProduction.empty()) {
+            productions.push_back(tokenizeProduction(processor.trim(currentProduction)));
+        }
+
+        grammarRules[lhs] = productions;
+    }
+    inputFile.close();
+
+    // ==================== STEP 2: Eliminate ALL left recursion (general algorithm) ====================
+    std::cout << "Eliminating all left recursion (immediate and non-immediate)..." << std::endl;
+    
+    int n = ruleOrder.size();
+    
+    // Main loop: for i from 1 to n
+    for (int i = 0; i < n; ++i) {
+        std::string Ai = ruleOrder[i];
+        
+        std::cout << "\n--- Processing " << Ai << " (position " << (i+1) << " of " << n << ") ---" << std::endl;
+        
+        // Inner loop: for j from 1 to i-1
+        for (int j = 0; j < i; ++j) {
+            std::string Aj = ruleOrder[j];
+            
+            std::cout << "  Checking for productions " << Ai << " → " << Aj << "γ..." << std::endl;
+            
+            // Check if Ai has any production that starts with Aj
+            std::vector<std::vector<std::string>>& AiProductions = grammarRules[Ai];
+            std::vector<std::vector<std::string>> newProductions;
+            bool substitutionMade = false;
+            
+            for (const auto& production : AiProductions) {
+                // Check if this production starts with Aj
+                if (!production.empty() && production[0] == Aj) {
+                    substitutionMade = true;
+                    std::cout << "    Found: " << Ai << " → " << Aj;
+                    for (size_t k = 1; k < production.size(); ++k) {
+                        std::cout << " " << production[k];
+                    }
+                    std::cout << std::endl;
+                    
+                    // Extract γ (everything after Aj)
+                    std::vector<std::string> gamma(production.begin() + 1, production.end());
+                    
+                    // Get all productions of Aj: Aj → α₁ | α₂ | ... | αₖ
+                    const std::vector<std::vector<std::string>>& AjProductions = grammarRules[Aj];
+                    
+                    // Replace Ai → Ajγ with Ai → α₁γ | α₂γ | ... | αₖγ
+                    for (const auto& alpha : AjProductions) {
+                        std::vector<std::string> newProduction = alpha;
+                        newProduction.insert(newProduction.end(), gamma.begin(), gamma.end());
+                        newProductions.push_back(newProduction);
+                        
+                        std::cout << "    Substituted with: " << Ai << " → ";
+                        for (const auto& token : newProduction) {
+                            std::cout << token << " ";
+                        }
+                        std::cout << std::endl;
+                    }
+                } else {
+                    // This production doesn't start with Aj, keep it as is
+                    newProductions.push_back(production);
+                }
+            }
+            
+            // Update Ai's productions if we made any substitutions
+            if (substitutionMade) {
+                grammarRules[Ai] = newProductions;
+                std::cout << "  Substitution completed for " << Ai << std::endl;
+            }
+        }
+        
+        // Now eliminate immediate left recursion among Ai productions
+        std::cout << "  Eliminating immediate left recursion in " << Ai << "..." << std::endl;
+        std::vector<std::string> tempOrder = {Ai};
+        eliminateLeftRecursion(grammarRules, ruleOrder);
+    }
+    
+    std::cout << "\nAll left recursion eliminated!" << std::endl;
+
+    // ==================== STEP 3: Perform left factoring ====================
+    std::cout << "\nPerforming left factoring..." << std::endl;
+    performLeftFactoring(grammarRules, ruleOrder);
+
+    // ==================== STEP 4: Write the transformed grammar to output file ====================
+    std::ofstream outputFile(outputFilename);
+    if (!outputFile.is_open()) {
+        std::cerr << "Error: Could not open output file " << outputFilename << std::endl;
+        return;
+    }
+
+    for (const std::string& lhs : ruleOrder) {
+        if (grammarRules.find(lhs) != grammarRules.end()) {
+            outputFile << lhs << " = ";
+            const auto& productions = grammarRules[lhs];
+            for (size_t i = 0; i < productions.size(); ++i) {
+                for (size_t j = 0; j < productions[i].size(); ++j) {
+                    outputFile << productions[i][j];
+                    if (j < productions[i].size() - 1) outputFile << " ";
+                }
+                if (i < productions.size() - 1) outputFile << " | ";
+            }
+            outputFile << std::endl;
+        }
+    }
+    outputFile.close();
+    std::cout << "\n LL(1) grammar written to " << outputFilename << std::endl;
+}
+
+/**
+ * @brief Tokenizes a production string into individual tokens.
+ */
+std::vector<std::string> CFGParser::tokenizeProduction(const std::string& production) {
+    std::vector<std::string> tokens;
+    std::string token;
+    bool insideQuotes = false;
+
+    for (size_t i = 0; i < production.size(); ++i) {
+        char c = production[i];
+        if (c == '\'') {
+            if (insideQuotes) {
+                token += c;
+                tokens.push_back(token);
+                token.clear();
+                insideQuotes = false;
+            } else {
+                insideQuotes = true;
+                token += c;
+            }
+        } else if (std::isspace(c) && !insideQuotes) {
+            if (!token.empty()) {
+                tokens.push_back(token);
+                token.clear();
+            }
+        } else {
+            token += c;
+        }
+    }
+    if (!token.empty()) {
+        tokens.push_back(token);
+    }
+    return tokens;
+}
+
+/**
+ * @brief Eliminates immediate left recursion from the grammar.
+ */
+void CFGParser::eliminateLeftRecursion(std::map<std::string, std::vector<std::vector<std::string>>>& grammarRules,
+                                       std::vector<std::string>& ruleOrder) {
+    std::vector<std::string> currentOrder = ruleOrder;
+    
+    for (const std::string& lhs : currentOrder) {
+        if (grammarRules.find(lhs) == grammarRules.end()) continue;
+        
+        std::vector<std::vector<std::string>>& productions = grammarRules[lhs];
+        std::vector<std::vector<std::string>> recursiveProds;
+        std::vector<std::vector<std::string>> nonRecursiveProds;
+
+        // Separate recursive and non-recursive productions
+        for (const auto& prod : productions) {
+            if (!prod.empty() && prod[0] == lhs) {
+                recursiveProds.push_back(prod);
+            } else {
+                nonRecursiveProds.push_back(prod);
+            }
+        }
+
+        // If there's left recursion, eliminate it
+        if (!recursiveProds.empty()) {
+            std::string newNonTerminal = lhs + "'";
+            std::vector<std::vector<std::string>> newProductions;
+            std::vector<std::vector<std::string>> primeProductions;
+
+            // A -> βA' for all non-recursive productions β
+            for (const auto& beta : nonRecursiveProds) {
+                std::vector<std::string> newProd = beta;
+                newProd.push_back(newNonTerminal);
+                newProductions.push_back(newProd);
+            }
+
+            // A' -> αA' | ε for all recursive productions Aα
+            for (const auto& alphaProd : recursiveProds) {
+                std::vector<std::string> alpha(alphaProd.begin() + 1, alphaProd.end());
+                alpha.push_back(newNonTerminal);
+                primeProductions.push_back(alpha);
+            }
+            // Add epsilon production
+            primeProductions.push_back(std::vector<std::string>{"ε"});
+
+            grammarRules[lhs] = newProductions;
+            grammarRules[newNonTerminal] = primeProductions;
+            ruleOrder.push_back(newNonTerminal);
+
+            std::cout << "  Eliminated immediate left recursion in " << lhs << std::endl;
+        }
+    }
+}
+
+/**
+ * @brief Performs left factoring on the grammar.
+ */
+void CFGParser::performLeftFactoring(std::map<std::string, std::vector<std::vector<std::string>>>& grammarRules,
+                                     std::vector<std::string>& ruleOrder) {
+    bool changed = true;
+    int primeCount = 1;
+
+    while (changed) {
+        changed = false;
+        std::vector<std::string> currentOrder = ruleOrder;
+
+        for (const std::string& lhs : currentOrder) {
+            if (grammarRules.find(lhs) == grammarRules.end()) continue;
+
+            std::vector<std::vector<std::string>>& productions = grammarRules[lhs];
+            
+            // Find common prefixes
+            for (size_t i = 0; i < productions.size(); ++i) {
+                for (size_t j = i + 1; j < productions.size(); ++j) {
+                    std::vector<std::string> commonPrefix = findCommonPrefix(productions[i], productions[j]);
+                    
+                    if (!commonPrefix.empty()) {
+                        // Found common prefix, perform left factoring
+                        std::string newNonTerminal = lhs + std::to_string(primeCount++);
+                        
+                        // Collect all productions with this common prefix
+                        std::vector<size_t> indicesToRemove;
+                        std::vector<std::vector<std::string>> factoredProductions;
+                        
+                        for (size_t k = 0; k < productions.size(); ++k) {
+                            if (startsWithPrefix(productions[k], commonPrefix)) {
+                                indicesToRemove.push_back(k);
+                                std::vector<std::string> suffix(productions[k].begin() + commonPrefix.size(), 
+                                                               productions[k].end());
+                                if (suffix.empty()) {
+                                    suffix.push_back("ε");
+                                }
+                                factoredProductions.push_back(suffix);
+                            }
+                        }
+
+                        // Remove old productions in reverse order
+                        for (auto it = indicesToRemove.rbegin(); it != indicesToRemove.rend(); ++it) {
+                            productions.erase(productions.begin() + *it);
+                        }
+
+                        // Add new factored production
+                        std::vector<std::string> newProd = commonPrefix;
+                        newProd.push_back(newNonTerminal);
+                        productions.push_back(newProd);
+
+                        // Add new non-terminal rule
+                        grammarRules[newNonTerminal] = factoredProductions;
+                        ruleOrder.push_back(newNonTerminal);
+
+                        std::cout << "  Left factored " << lhs << " (common prefix of length " 
+                                  << commonPrefix.size() << ")" << std::endl;
+                        
+                        changed = true;
+                        break;
+                    }
+                }
+                if (changed) break;
+            }
+            if (changed) break;
+        }
+    }
+}
+
+/**
+ * @brief Finds the common prefix between two productions.
+ */
+std::vector<std::string> CFGParser::findCommonPrefix(const std::vector<std::string>& prod1,
+                                                     const std::vector<std::string>& prod2) {
+    std::vector<std::string> prefix;
+    size_t minLen = std::min(prod1.size(), prod2.size());
+    
+    for (size_t i = 0; i < minLen; ++i) {
+        if (prod1[i] == prod2[i]) {
+            prefix.push_back(prod1[i]);
+        } else {
+            break;
+        }
+    }
+    return prefix;
+}
+
+/**
+ * @brief Checks if a production starts with a given prefix.
+ */
+bool CFGParser::startsWithPrefix(const std::vector<std::string>& production,
+                                const std::vector<std::string>& prefix) {
+    if (prefix.size() > production.size()) return false;
+    
+    for (size_t i = 0; i < prefix.size(); ++i) {
+        if (production[i] != prefix[i]) return false;
+    }
+    return true;
+}
+
 /**
  * @brief A function to debug the parser.
  * 
@@ -378,7 +840,11 @@ bool CFGParser::debugParser(const std::string& filename) {
     // Clean the grammar file
     parser.cleanGrammar(filename, "cleaned_grammar.txt");
 
-    parser.parseGrammar("cleaned_grammar.txt");
+    // Transform to LL(1) form
+    parser.transformToLL1("cleaned_grammar.txt", "ll1_grammar.txt");
+
+    // Parse the cleaned grammar file
+    parser.parseGrammar("ll1_grammar.txt");
 
     std::map<std::string, Item*> grammar = parser.getGrammar();
 

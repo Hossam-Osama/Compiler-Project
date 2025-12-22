@@ -10,7 +10,13 @@ Item: ';' (Terminal)
 
 Item: '=' (Terminal)
 
+Item: 'a' (Terminal)
+
 Item: 'addop' (Terminal)
+
+Item: 'b' (Terminal)
+
+Item: 'c' (Terminal)
 
 Item: 'else' (Terminal)
 
@@ -30,19 +36,45 @@ Item: 'relop' (Terminal)
 
 Item: 'while' (Terminal)
 
+Item: 'x' (Terminal)
+
+Item: 'y' (Terminal)
+
+Item: 'z' (Terminal)
+
 Item: '{' (Terminal)
 
 Item: '}' (Terminal)
 
+Item: A (Non-terminal)
+  Production: B 'x' 
+  Production: 'a' 
+
 Item: ASSIGNMENT (Non-terminal)
   Production: 'id' '=' EXPRESSION ';' 
+
+Item: B (Non-terminal)
+  Production: C 'y' 
+  Production: 'b' 
+
+Item: C (Non-terminal)
+  Production: 'b' 'x' 'z' C' 
+  Production: 'a' 'z' C' 
+  Production: 'c' C' 
+
+Item: C' (Non-terminal)
+  Production: 'y' 'x' 'z' C' 
+  Production: ε 
 
 Item: DECLARATION (Non-terminal)
   Production: PRIMITIVE_TYPE 'id' ';' 
 
 Item: EXPRESSION (Non-terminal)
-  Production: SIMPLE_EXPRESSION 
-  Production: SIMPLE_EXPRESSION 'relop' SIMPLE_EXPRESSION 
+  Production: SIMPLE_EXPRESSION EXPRESSION1 
+
+Item: EXPRESSION1 (Non-terminal)
+  Production: ε 
+  Production: 'relop' SIMPLE_EXPRESSION 
 
 Item: FACTOR (Non-terminal)
   Production: 'id' 
@@ -64,9 +96,12 @@ Item: SIGN (Non-terminal)
   Production: '-' 
 
 Item: SIMPLE_EXPRESSION (Non-terminal)
-  Production: TERM 
-  Production: SIGN TERM 
-  Production: SIMPLE_EXPRESSION 'addop' TERM 
+  Production: TERM SIMPLE_EXPRESSION' 
+  Production: SIGN TERM SIMPLE_EXPRESSION' 
+
+Item: SIMPLE_EXPRESSION' (Non-terminal)
+  Production: 'addop' TERM SIMPLE_EXPRESSION' 
+  Production: ε 
 
 Item: STATEMENT (Non-terminal)
   Production: DECLARATION 
@@ -75,13 +110,21 @@ Item: STATEMENT (Non-terminal)
   Production: ASSIGNMENT 
 
 Item: STATEMENT_LIST (Non-terminal)
-  Production: STATEMENT 
-  Production: STATEMENT_LIST STATEMENT 
+  Production: STATEMENT STATEMENT_LIST' 
+
+Item: STATEMENT_LIST' (Non-terminal)
+  Production: STATEMENT STATEMENT_LIST' 
+  Production: ε 
 
 Item: TERM (Non-terminal)
-  Production: FACTOR 
-  Production: TERM 'mulop' FACTOR 
+  Production: FACTOR TERM' 
+
+Item: TERM' (Non-terminal)
+  Production: 'mulop' FACTOR TERM' 
+  Production: ε 
 
 Item: WHILE (Non-terminal)
   Production: 'while' '(' EXPRESSION ')' '{' STATEMENT '}' 
+
+Item: ε (Non-terminal)
 

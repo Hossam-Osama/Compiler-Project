@@ -32,7 +32,8 @@ int main()
 
         CFGParser parser;
         parser.cleanGrammar(my_grammer_file, "cleaned_grammar.txt");
-        auto cfg_grammar = parser.parseGrammar("cleaned_grammar.txt");
+        parser.transformToLL1("cleaned_grammar.txt", "ll1_grammar.txt");
+        auto cfg_grammar = parser.parseGrammar("ll1_grammar.txt");
         string startSymbol = parser.getStartSymbolName();
 
         // Convert CFGParser grammar to the expected format
