@@ -1,4 +1,7 @@
-count 1
-mnt 3
-pass 2
-sum 0
+E1 5
+Test 0
+case 1
+f 3
+f2 4
+n 2
+x 6

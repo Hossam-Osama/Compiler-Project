@@ -1,4 +1,8 @@
-int sum , count , pass , mnt; while (pass != 10) 
-{ 
-pass = pass + 1 ; 
-}
+19:31
+Test case (1) 
+int n = 3
+float f = 56.7;
+float f2 = 5.67E1
+x x,x 5 n 
+if (f >50) { f = f2 / 2}
+else { f = f2 * 2}

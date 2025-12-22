@@ -16,10 +16,10 @@ int nextSymbolID = 0;
 
 // DFA Structure
 struct DFA {
-    set<set<string>> states;                                // DFA states as sets of NFA states
-    map<set<string>, map<string, set<string>>> transitions; // DFA transitions
-    set<string> starting;                                   // Starting state
-    map<set<string>, unordered_set<string>> accepting;      // Accepting states with associated tokens
+    set<State> states;                                // DFA states as sets of NFA states
+    map<State, map<string, State>> transitions; // DFA transitions
+    State starting;                                   // Starting state
+    map<State, unordered_set<string>> accepting;      // Accepting states with associated tokens
 };
 //-------------------------------------part2-----------------------
 // Function to split a string by a delimiter
@@ -191,7 +191,7 @@ DFA minimizeDFA(const DFA& dfa) {
             continue;
         }
 
-        // convert unordered_set<string> -> sorted vector<string>
+        // convert unordered_set<string> to sorted vector<string>
         vector<string> tokVec(
             dfa.accepting.at(s).begin(),
             dfa.accepting.at(s).end()
@@ -504,7 +504,8 @@ int main() {
     dfa = minimizeDFA(dfa);
     writeDFATransitionsToFile(dfa,"minimized_dfa");
     // {"boolean","int","float","if","while","else",";",",","(",")","{","}","id","num","relop","assign","addop","mulop"};
-    vector<string> priority = extractPriority("Rules");
+    // vector<string> priority = extractPriority("Rules");
+    vector<string> priority = {"boolean","int","float","if","while","else",";",",","(",")","{","}","id","num","relop","assign","addop","mulop"};
     cout << "Token Priority Order:\n";
     for (const string& token : priority) {
         cout << token << "\n";
