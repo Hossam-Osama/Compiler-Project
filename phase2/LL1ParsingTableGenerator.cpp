@@ -11,7 +11,7 @@ using namespace std;
 LL1ParsingTableGenerator::LL1ParsingTableGenerator() {}
 
 void LL1ParsingTableGenerator::generate(const string &firstFollowFile,
-                                        const string &grammarFile,
+                                        const string &terminalsNonTerminalsFile,
                                         const string &outputFile)
 {
     // Clear existing data
@@ -22,6 +22,13 @@ void LL1ParsingTableGenerator::generate(const string &firstFollowFile,
     terminals.clear();
     parsingTable.clear();
 
+    // Load terminals, non-terminals and grammar rules
+    if (!loadTerminalsAndNonTerminals(terminalsNonTerminalsFile))
+    {
+        cerr << "Error loading terminals/non-terminals from: " << terminalsNonTerminalsFile << endl;
+        return;
+    }
+
     // Load first and follow sets
     if (!loadFirstFollowSets(firstFollowFile))
     {
@@ -29,24 +36,14 @@ void LL1ParsingTableGenerator::generate(const string &firstFollowFile,
         return;
     }
 
-    // Load grammar rules
-    if (!loadGrammarRules(grammarFile))
-    {
-        cerr << "Error loading grammar rules from: " << grammarFile << endl;
-        return;
-    }
-
-    // Build terminals set from grammar
-    extractTerminalsFromGrammar();
-
-    // Generate parsing table
+    // Generate parsing table - if not LL(1), stop and don't write output
     if (!generateParsingTable())
     {
-        cerr << "Grammar is not LL(1)" << endl;
+        cerr << "ERROR: Grammar is not LL(1). Cannot generate parsing table." << endl;
         return;
     }
 
-    // Write parsing table to file
+    // Write parsing table to file (only if grammar is LL(1))
     writeParsingTable(outputFile);
 
     cout << "Parsing table successfully generated and saved to: " << outputFile << endl;
@@ -112,24 +109,11 @@ bool LL1ParsingTableGenerator::loadFirstFollowSets(const string &filename)
                 }
                 if (!token.empty())
                 {
-                    if (token == EPSILON)
-                    {
-                        firstSet.insert(LAMBDA); // Use LAMBDA internally
-                    }
-                    else
-                    {
-                        firstSet.insert(token);
-                    }
+                    firstSet.insert(token);
                 }
             }
 
-            if (symbol == EPSILON)
-            {
-                symbol = LAMBDA;
-            }
-
             firstSets[symbol] = firstSet;
-            nonTerminals.insert(symbol);
         }
         else if (line.find("Follow(") == 0)
         {
@@ -171,18 +155,7 @@ bool LL1ParsingTableGenerator::loadFirstFollowSets(const string &filename)
                 }
                 if (!token.empty())
                 {
-                    if (token == "$")
-                    {
-                        followSet.insert("$");
-                    }
-                    else if (token == EPSILON)
-                    {
-                        followSet.insert(LAMBDA);
-                    }
-                    else
-                    {
-                        followSet.insert(token);
-                    }
+                    followSet.insert(token);
                 }
             }
 
@@ -194,19 +167,18 @@ bool LL1ParsingTableGenerator::loadFirstFollowSets(const string &filename)
     return true;
 }
 
-bool LL1ParsingTableGenerator::loadGrammarRules(const string &filename)
+bool LL1ParsingTableGenerator::loadTerminalsAndNonTerminals(const string &filename)
 {
     ifstream file(filename);
     if (!file.is_open())
     {
-        cerr << "Cannot open grammar file: " << filename << endl;
+        cerr << "Cannot open terminals/non-terminals file: " << filename << endl;
         return false;
     }
 
     string line;
-    string currentLHS;
-    vector<vector<string>> alternatives;
-    vector<string> currentRHS;
+    string currentNonTerminal;
+    vector<Rule> currentRules;
 
     while (getline(file, line))
     {
@@ -217,277 +189,106 @@ bool LL1ParsingTableGenerator::loadGrammarRules(const string &filename)
         // Remove leading/trailing whitespace
         trim(line);
 
-        // Check if line contains production symbol "::="
-        size_t prodPos = line.find("::=");
-
-        if (prodPos != string::npos)
+        // Check if line starts with "Item: "
+        if (line.find("Item: ") == 0)
         {
-            // Save previous rule if exists
-            if (!currentLHS.empty() && !alternatives.empty())
+            // Save previous non-terminal rules if exists
+            if (!currentNonTerminal.empty() && !currentRules.empty())
             {
-                for (const auto &alt : alternatives)
+                grammarRules[currentNonTerminal] = currentRules;
+                currentRules.clear();
+            }
+
+            // Extract item name and type
+            size_t itemStart = 6; // Length of "Item: "
+            size_t typeStart = line.find('(', itemStart);
+
+            if (typeStart == string::npos)
+                continue;
+
+            string itemName = line.substr(itemStart, typeStart - itemStart - 1);
+            trim(itemName);
+
+            string itemType = line.substr(typeStart + 1);
+            size_t typeEnd = itemType.find(')');
+            if (typeEnd != string::npos)
+            {
+                itemType = itemType.substr(0, typeEnd);
+            }
+
+            // Check if it's a terminal or non-terminal
+            if (itemType == "Terminal")
+            {
+                // Add to terminals set (excluding epsilon)
+                if (itemName != "'\\L'" && itemName != LAMBDA)
                 {
-                    if (!alt.empty())
-                    {
-                        Rule rule;
-                        rule.lhs = currentLHS;
-                        rule.rhs = alt;
-                        rule.originalString = formatProduction(currentLHS, alt);
-                        grammarRules[currentLHS].push_back(rule);
-                    }
+                    terminals.insert(itemName);
                 }
-                alternatives.clear();
             }
-
-            // Start new rule
-            currentLHS = line.substr(0, prodPos);
-            trim(currentLHS);
-            nonTerminals.insert(currentLHS);
-
-            // Parse RHS
-            string rhs = line.substr(prodPos + 3);
-            trim(rhs);
-
-            // Split by alternatives
-            vector<string> altStrings;
-            splitAlternatives(rhs, altStrings);
-
-            // Parse each alternative
-            for (const auto &altStr : altStrings)
+            else if (itemType == "Non-terminal")
             {
-                currentRHS.clear();
-                parseTokens(altStr, currentRHS);
-                alternatives.push_back(currentRHS);
+                // Add to non-terminals set
+                nonTerminals.insert(itemName);
+                currentNonTerminal = itemName;
             }
         }
-        else if (!currentLHS.empty())
+        // Check if line starts with "Production: "
+        else if (line.find("Production: ") == 0 && !currentNonTerminal.empty())
         {
-            // Continuation of previous rule
-            trim(line);
+            size_t prodStart = 12; // Length of "Production: "
+            string production = line.substr(prodStart);
+            trim(production);
 
-            // Split by alternatives if any
-            vector<string> altStrings;
-            splitAlternatives(line, altStrings);
+            // Parse the production
+            vector<string> tokens;
+            parseProduction(production, tokens);
 
-            // Parse each alternative
-            for (const auto &altStr : altStrings)
-            {
-                currentRHS.clear();
-                parseTokens(altStr, currentRHS);
-                alternatives.push_back(currentRHS);
-            }
+            // Create rule
+            Rule rule;
+            rule.lhs = currentNonTerminal;
+            rule.rhs = tokens;
+            rule.originalString = formatProduction(currentNonTerminal, tokens);
+
+            currentRules.push_back(rule);
         }
     }
 
-    // Save the last rule
-    if (!currentLHS.empty() && !alternatives.empty())
+    // Save the last non-terminal rules
+    if (!currentNonTerminal.empty() && !currentRules.empty())
     {
-        for (const auto &alt : alternatives)
-        {
-            if (!alt.empty())
-            {
-                Rule rule;
-                rule.lhs = currentLHS;
-                rule.rhs = alt;
-                rule.originalString = formatProduction(currentLHS, alt);
-                grammarRules[currentLHS].push_back(rule);
-            }
-        }
+        grammarRules[currentNonTerminal] = currentRules;
     }
+
+    // Add end marker to terminals
+    terminals.insert("$");
 
     file.close();
     return true;
 }
 
-void LL1ParsingTableGenerator::splitAlternatives(const string &str, vector<string> &alternatives)
+void LL1ParsingTableGenerator::parseProduction(const string &production, vector<string> &tokens)
 {
-    string current;
-    bool inQuotes = false;
-    bool escape = false;
+    istringstream iss(production);
+    string token;
 
-    for (size_t i = 0; i < str.length(); ++i)
+    while (iss >> token)
     {
-        char c = str[i];
-
-        if (escape)
+        // Check for quoted terminals
+        if (token.front() == '\'' && token.back() == '\'')
         {
-            current += c;
-            escape = false;
-            continue;
-        }
-
-        if (c == '\\')
-        {
-            escape = true;
-            current += c;
-            continue;
-        }
-
-        if (c == '\'')
-        {
-            inQuotes = !inQuotes;
-            current += c;
-        }
-        else if (c == '|' && !inQuotes)
-        {
-            // Found alternative separator
-            trim(current);
-            if (!current.empty())
-            {
-                alternatives.push_back(current);
-            }
-            current.clear();
+            tokens.push_back(token);
         }
         else
         {
-            current += c;
-        }
-    }
-
-    // Add the last alternative
-    trim(current);
-    if (!current.empty())
-    {
-        alternatives.push_back(current);
-    }
-}
-
-void LL1ParsingTableGenerator::parseTokens(const string &str, vector<string> &tokens)
-{
-    string token;
-    bool inQuotes = false;
-    bool escape = false;
-
-    for (size_t i = 0; i < str.length(); ++i)
-    {
-        char c = str[i];
-
-        if (escape)
-        {
-            token += c;
-            escape = false;
-            continue;
-        }
-
-        if (c == '\\')
-        {
-            escape = true;
-            continue;
-        }
-
-        if (c == '\'')
-        {
-            if (inQuotes)
+            // Check if it's epsilon
+            if (token == "\\L" || token == "'\\L'")
             {
-                // End of quoted terminal
-                token += c;
-                if (!token.empty())
-                {
-                    tokens.push_back(token);
-                }
-                token.clear();
+                tokens.push_back(LAMBDA);
             }
             else
             {
-                // Start of quoted terminal
-                if (!token.empty())
-                {
-                    tokens.push_back(token);
-                    token.clear();
-                }
-                token += c;
-            }
-            inQuotes = !inQuotes;
-        }
-        else if (c == ' ' && !inQuotes)
-        {
-            if (!token.empty())
-            {
+                // Assume it's a symbol (non-terminal or unquoted terminal)
                 tokens.push_back(token);
-                token.clear();
-            }
-        }
-        else
-        {
-            token += c;
-        }
-    }
-
-    if (!token.empty())
-    {
-        tokens.push_back(token);
-    }
-}
-
-void LL1ParsingTableGenerator::extractTerminalsFromGrammar()
-{
-    // Add standard terminals
-    terminals.insert("$");
-
-    // Extract terminals from grammar rules
-    for (const auto &entry : grammarRules)
-    {
-        for (const auto &rule : entry.second)
-        {
-            for (const auto &token : rule.rhs)
-            {
-                // Check if token is terminal (enclosed in single quotes)
-                if (token.length() >= 2 && token.front() == '\'' && token.back() == '\'')
-                {
-                    terminals.insert(token);
-                }
-                // Check if it's epsilon (should be handled specially)
-                else if (token == LAMBDA || token == EPSILON)
-                {
-                    // Don't add epsilon to terminals - it's a special symbol
-                    continue;
-                }
-                // Otherwise, it could be a non-terminal
-                else if (terminals.find(token) == terminals.end() &&
-                         nonTerminals.find(token) == nonTerminals.end())
-                {
-                    // If it's not in nonTerminals and looks like uppercase, might be token
-                    bool allUpper = true;
-                    for (char c : token)
-                    {
-                        if (!isupper(c) && c != '_')
-                        {
-                            allUpper = false;
-                            break;
-                        }
-                    }
-                    if (allUpper)
-                    {
-                        nonTerminals.insert(token);
-                    }
-                }
-            }
-        }
-    }
-
-    // Also add terminals from first sets
-    for (const auto &entry : firstSets)
-    {
-        for (const auto &symbol : entry.second)
-        {
-            if (symbol != LAMBDA && symbol != EPSILON &&
-                nonTerminals.find(symbol) == nonTerminals.end())
-            {
-                terminals.insert(symbol);
-            }
-        }
-    }
-
-    // Also add terminals from follow sets
-    for (const auto &entry : followSets)
-    {
-        for (const auto &symbol : entry.second)
-        {
-            if (symbol != LAMBDA && symbol != EPSILON &&
-                symbol != "$" &&
-                nonTerminals.find(symbol) == nonTerminals.end())
-            {
-                terminals.insert(symbol);
             }
         }
     }
@@ -496,16 +297,15 @@ void LL1ParsingTableGenerator::extractTerminalsFromGrammar()
 bool LL1ParsingTableGenerator::generateParsingTable()
 {
     bool isLL1 = true;
+    vector<string> conflictMessages;
 
-    // Initialize parsing table with "Error"
+    // Initialize parsing table with "EMPTY" for all non-terminal/terminal pairs
     for (const auto &nonTerminal : nonTerminals)
     {
         for (const auto &terminal : terminals)
         {
-            parsingTable[{nonTerminal, terminal}] = "Error";
+            parsingTable[{nonTerminal, terminal}] = "EMPTY";
         }
-        // Also add for $
-        parsingTable[{nonTerminal, "$"}] = "Error";
     }
 
     // For each production A -> α
@@ -523,20 +323,37 @@ bool LL1ParsingTableGenerator::generateParsingTable()
             // Rule 1: For each terminal a in FIRST(α), add A -> α to M[A, a]
             for (const auto &a : firstAlpha)
             {
-                if (a == LAMBDA)
+                if (isEpsilon(a))
                 {
                     // Handle epsilon separately (Rule 2)
                     continue;
                 }
 
-                pair<string, string> key = {A, a};
+                // Convert terminal to table format
+                string terminalForTable = a;
+
+                // Ensure terminal is quoted if needed
+                if (a != "$" && (a.length() < 2 || a.front() != '\'' || a.back() != '\''))
+                {
+                    terminalForTable = "'" + a + "'";
+                }
+
+                // Check if this terminal is in our terminals set
+                if (terminals.find(terminalForTable) == terminals.end() && terminalForTable != "$")
+                {
+                    // Skip if not a valid terminal
+                    continue;
+                }
+
+                pair<string, string> key = {A, terminalForTable};
                 if (parsingTable.find(key) != parsingTable.end())
                 {
-                    if (parsingTable[key] != "Error")
+                    if (parsingTable[key] != "EMPTY")
                     {
                         // Conflict - not LL(1)
-                        cerr << "LL(1) Conflict at [" << A << ", " << a << "]: "
-                                  << parsingTable[key] << " vs " << rule.originalString << endl;
+                        string conflictMsg = "LL(1) Conflict at [" + A + ", " + terminalForTable + "]: " +
+                                             parsingTable[key] + " vs " + rule.originalString;
+                        conflictMessages.push_back(conflictMsg);
                         isLL1 = false;
                     }
                     else
@@ -554,17 +371,42 @@ bool LL1ParsingTableGenerator::generateParsingTable()
                 {
                     for (const auto &b : followSets[A])
                     {
-                        if (b == LAMBDA)
-                            continue; // Skip epsilon from follow sets
+                        if (isEpsilon(b))
+                            continue;
 
-                        pair<string, string> key = {A, b};
+                        // Convert follow symbol to table format
+                        string terminalForTable = b;
+                        if (b != "$" && (b.length() < 2 || b.front() != '\'' || b.back() != '\''))
+                        {
+                            terminalForTable = "'" + b + "'";
+                        }
+
+                        // Check if this is a valid terminal
+                        if (terminals.find(terminalForTable) == terminals.end() && terminalForTable != "$")
+                        {
+                            // Try unquoted version
+                            string unquoted = b;
+                            if (b.length() >= 2 && b.front() == '\'' && b.back() == '\'')
+                            {
+                                unquoted = b.substr(1, b.length() - 2);
+                            }
+                            terminalForTable = "'" + unquoted + "'";
+
+                            if (terminals.find(terminalForTable) == terminals.end() && unquoted != "$")
+                            {
+                                continue;
+                            }
+                        }
+
+                        pair<string, string> key = {A, terminalForTable};
                         if (parsingTable.find(key) != parsingTable.end())
                         {
-                            if (parsingTable[key] != "Error")
+                            if (parsingTable[key] != "EMPTY")
                             {
                                 // Conflict - not LL(1)
-                                cerr << "LL(1) Conflict at [" << A << ", " << b << "]: "
-                                          << parsingTable[key] << " vs " << rule.originalString << endl;
+                                string conflictMsg = "LL(1) Conflict at [" + A + ", " + terminalForTable + "]: " +
+                                                     parsingTable[key] + " vs " + rule.originalString;
+                                conflictMessages.push_back(conflictMsg);
                                 isLL1 = false;
                             }
                             else
@@ -574,27 +416,23 @@ bool LL1ParsingTableGenerator::generateParsingTable()
                         }
                     }
                 }
-
-                // Also handle $ specifically
-                pair<string, string> key = {A, "$"};
-                if (parsingTable.find(key) != parsingTable.end() && parsingTable[key] == "Error")
-                {
-                    // Check if $ is in FOLLOW(A)
-                    bool dollarInFollow = false;
-                    if (followSets.find(A) != followSets.end())
-                    {
-                        dollarInFollow = (followSets[A].find("$") != followSets[A].end());
-                    }
-
-                    // For ε productions, we also need to consider that they might be valid
-                    // when the input is empty (i.e., at the end of string, represented by $)
-                    if (dollarInFollow || (alpha.size() == 1 && (alpha[0] == LAMBDA || alpha[0] == EPSILON)))
-                    {
-                        parsingTable[key] = rule.originalString;
-                    }
-                }
             }
         }
+    }
+
+    // Print all conflict messages if grammar is not LL(1)
+    if (!isLL1)
+    {
+        cerr << "\n=== LL(1) CONFLICTS DETECTED ===" << endl;
+        for (const auto &msg : conflictMessages)
+        {
+            cerr << msg << endl;
+        }
+        cerr << "===============================\n"
+             << endl;
+
+        // Clear the parsing table since grammar is not LL(1)
+        parsingTable.clear();
     }
 
     return isLL1;
@@ -611,7 +449,7 @@ set<string> LL1ParsingTableGenerator::computeFirstOfSequence(const vector<string
     }
 
     // Handle epsilon directly
-    if (sequence.size() == 1 && (sequence[0] == LAMBDA || sequence[0] == EPSILON))
+    if (sequence.size() == 1 && isEpsilon(sequence[0]))
     {
         result.insert(LAMBDA);
         return result;
@@ -622,25 +460,24 @@ set<string> LL1ParsingTableGenerator::computeFirstOfSequence(const vector<string
     for (const auto &symbol : sequence)
     {
         // Check if symbol is epsilon
-        if (symbol == LAMBDA || symbol == EPSILON)
+        if (isEpsilon(symbol))
         {
             result.insert(LAMBDA);
             break;
         }
 
-        // Check if symbol is terminal (enclosed in quotes)
-        if (symbol.length() >= 2 && symbol.front() == '\'' && symbol.back() == '\'')
+        // Check if symbol is a terminal
+        if (isTerminal(symbol))
         {
-            result.insert(symbol);
-            allContainEpsilon = false;
-            break;
-        }
-
-        // Check if symbol is a regular terminal (not in nonTerminals)
-        if (terminals.find(symbol) != terminals.end() &&
-            nonTerminals.find(symbol) == nonTerminals.end())
-        {
-            result.insert(symbol);
+            // Add the terminal to result
+            if (symbol.front() == '\'' && symbol.back() == '\'')
+            {
+                result.insert(symbol);
+            }
+            else
+            {
+                result.insert("'" + symbol + "'");
+            }
             allContainEpsilon = false;
             break;
         }
@@ -653,7 +490,7 @@ set<string> LL1ParsingTableGenerator::computeFirstOfSequence(const vector<string
             // Add all symbols except epsilon
             for (const auto &s : first)
             {
-                if (s != LAMBDA)
+                if (!isEpsilon(s))
                 {
                     result.insert(s);
                 }
@@ -668,7 +505,8 @@ set<string> LL1ParsingTableGenerator::computeFirstOfSequence(const vector<string
         }
         else
         {
-            // Symbol not found in first sets - treat as terminal
+            // Symbol not found in first sets
+            // Assume it's a terminal we haven't seen
             result.insert(symbol);
             allContainEpsilon = false;
             break;
@@ -686,11 +524,11 @@ set<string> LL1ParsingTableGenerator::computeFirstOfSequence(const vector<string
 
 string LL1ParsingTableGenerator::formatProduction(const string &lhs, const vector<string> &rhs)
 {
-    string result = lhs + " ::= ";
+    string result = lhs + " = ";
 
-    if (rhs.empty() || (rhs.size() == 1 && (rhs[0] == LAMBDA || rhs[0] == EPSILON)))
+    if (rhs.empty() || (rhs.size() == 1 && isEpsilon(rhs[0])))
     {
-        result += EPSILON; // Use ε for display
+        result += LAMBDA;
     }
     else
     {
@@ -699,10 +537,9 @@ string LL1ParsingTableGenerator::formatProduction(const string &lhs, const vecto
             if (i > 0)
                 result += " ";
 
-            // If it's lambda internally, display as epsilon
-            if (rhs[i] == LAMBDA)
+            if (isEpsilon(rhs[i]))
             {
-                result += EPSILON;
+                result += LAMBDA;
             }
             else
             {
@@ -724,26 +561,23 @@ void LL1ParsingTableGenerator::writeParsingTable(const string &filename)
     }
 
     // Create a sorted list of terminals for columns
-    vector<string> sortedTerminals;
-    for (const auto &terminal : terminals)
-    {
-        sortedTerminals.push_back(terminal);
-    }
-    // Add $ at the end
-    sortedTerminals.push_back("$");
+    vector<string> sortedTerminals(terminals.begin(), terminals.end());
 
     // Sort terminals alphabetically, but keep $ at the end
-    sort(sortedTerminals.begin(), sortedTerminals.end() - 1);
+    sort(sortedTerminals.begin(), sortedTerminals.end(), [](const string &a, const string &b)
+         {
+        if (a == "$") return false;
+        if (b == "$") return true;
+        return a < b; });
 
-    // Calculate column width for terminal headers
-    size_t terminalWidth = 50;
+    // Calculate column widths
+    size_t terminalWidth = 75;
     for (const auto &terminal : sortedTerminals)
     {
         terminalWidth = max(terminalWidth, terminal.length() + 2);
     }
 
-    // Calculate non-terminal column width
-    size_t nonTerminalWidth = 25;
+    size_t nonTerminalWidth = 20;
     for (const auto &nonTerminal : nonTerminals)
     {
         nonTerminalWidth = max(nonTerminalWidth, nonTerminal.length() + 2);
@@ -782,17 +616,17 @@ void LL1ParsingTableGenerator::writeParsingTable(const string &filename)
         for (const auto &terminal : sortedTerminals)
         {
             pair<string, string> key = {nonTerminal, terminal};
-            string entry = "Error";
+            string entry = "EMPTY";
 
             if (parsingTable.find(key) != parsingTable.end())
             {
                 entry = parsingTable[key];
 
                 // Truncate if too long
-                if (entry.length() > terminalWidth - 2)
-                {
-                    entry = entry.substr(0, terminalWidth - 5) + "...";
-                }
+                // if (entry.length() > terminalWidth - 2)
+                // {
+                //     entry = entry.substr(0, terminalWidth - 5) + "...";
+                // }
             }
 
             file << setw(terminalWidth) << entry;
@@ -817,4 +651,36 @@ void LL1ParsingTableGenerator::trim(string &str)
 
     size_t end = str.find_last_not_of(" \t\n\r");
     str = str.substr(start, end - start + 1);
+}
+
+bool LL1ParsingTableGenerator::isEpsilon(const string &token) const
+{
+    return token == LAMBDA || token == "\\L" || token == "'\\L'";
+}
+
+bool LL1ParsingTableGenerator::isTerminal(const string &token) const
+{
+    // Check if it's epsilon
+    if (isEpsilon(token))
+        return false;
+
+    // Check if it's quoted
+    if (token.length() >= 2 && token.front() == '\'' && token.back() == '\'')
+    {
+        return true;
+    }
+
+    // Check if it's in terminals set
+    if (terminals.find(token) != terminals.end() ||
+        terminals.find("'" + token + "'") != terminals.end())
+    {
+        return true;
+    }
+
+    // Check if it's a special terminal
+    if (token == "$")
+        return true;
+
+    // Check if it's not a non-terminal
+    return nonTerminals.find(token) == nonTerminals.end();
 }

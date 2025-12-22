@@ -499,7 +499,7 @@ vector<string> extractPriority(const string& filename) {
 }
 
 
-int main() {
+int run_phase1() {
     DFA dfa = (nfa_to_dfa(filetoFSA()));
     dfa = minimizeDFA(dfa);
     writeDFATransitionsToFile(dfa,"minimized_dfa");

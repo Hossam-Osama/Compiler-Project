@@ -1,0 +1,3 @@
+int sum , count , pass , mnt; while (pass != 10) 
+{ 
+float x =5.6
