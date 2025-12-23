@@ -6,8 +6,8 @@
 #include <sstream>
 #include <algorithm>
 #include <stdexcept>
-//#include "Read_File.h"
-//#include "Mapping.h"
+#include "Read_File.h"
+#include "Mapping.h"
 #include <string.h>
 
 using namespace std;
