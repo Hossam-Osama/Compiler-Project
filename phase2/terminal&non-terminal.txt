@@ -1,0 +1,101 @@
+Item: '(' (Terminal)
+
+Item: ')' (Terminal)
+
+Item: '+' (Terminal)
+
+Item: '-' (Terminal)
+
+Item: ';' (Terminal)
+
+Item: '=' (Terminal)
+
+Item: '\L' (Terminal)
+
+Item: 'addop' (Terminal)
+
+Item: 'else' (Terminal)
+
+Item: 'float' (Terminal)
+
+Item: 'id' (Terminal)
+
+Item: 'if' (Terminal)
+
+Item: 'int' (Terminal)
+
+Item: 'mulop' (Terminal)
+
+Item: 'num' (Terminal)
+
+Item: 'relop' (Terminal)
+
+Item: 'while' (Terminal)
+
+Item: '{' (Terminal)
+
+Item: '}' (Terminal)
+
+Item: ASSIGNMENT (Non-terminal)
+  Production: 'id' '=' EXPRESSION ';' 
+
+Item: DECLARATION (Non-terminal)
+  Production: PRIMITIVE_TYPE 'id' ';' 
+
+Item: EXPRESSION (Non-terminal)
+  Production: SIMPLE_EXPRESSION EXPRESSION_PRIME 
+
+Item: EXPRESSION_PRIME (Non-terminal)
+  Production: 'relop' SIMPLE_EXPRESSION 
+  Production: '\L' 
+
+Item: FACTOR (Non-terminal)
+  Production: 'id' 
+  Production: 'num' 
+  Production: '(' EXPRESSION ')' 
+
+Item: IF (Non-terminal)
+  Production: 'if' '(' EXPRESSION ')' '{' STATEMENT '}' 'else' '{' STATEMENT '}' 
+
+Item: METHOD_BODY (Non-terminal)
+  Production: STATEMENT_LIST 
+
+Item: PRIMITIVE_TYPE (Non-terminal)
+  Production: 'int' 
+  Production: 'float' 
+
+Item: SIGN (Non-terminal)
+  Production: '+' 
+  Production: '-' 
+
+Item: SIMPLE_EXPRESSION (Non-terminal)
+  Production: TERM SIMPLE_EXPRESSION_PRIME 
+  Production: SIGN TERM SIMPLE_EXPRESSION_PRIME 
+
+Item: SIMPLE_EXPRESSION_PRIME (Non-terminal)
+  Production: 'addop' TERM SIMPLE_EXPRESSION_PRIME 
+  Production: '\L' 
+
+Item: STATEMENT (Non-terminal)
+  Production: DECLARATION 
+  Production: IF 
+  Production: WHILE 
+  Production: ASSIGNMENT 
+
+Item: STATEMENT_LIST (Non-terminal)
+  Production: STATEMENT STATEMENT_LIST_PRIME 
+
+Item: STATEMENT_LIST_PRIME (Non-terminal)
+  Production: STATEMENT STATEMENT_LIST_PRIME 
+  Production: '\L' 
+
+Item: TERM (Non-terminal)
+  Production: FACTOR TERM_PRIME 
+
+Item: TERM_PRIME (Non-terminal)
+  Production: 'mulop' FACTOR TERM_PRIME 
+  Production: '\L' 
+
+Item: WHILE (Non-terminal)
+  Production: 'while' '(' EXPRESSION ')' '{' STATEMENT '}' 
+

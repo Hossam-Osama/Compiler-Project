@@ -9,6 +9,7 @@
 #include <fstream>
 #include "LL1ParsingTableGenerator.h"
 #include "CFGParser.cpp"
+#include "ProductionRules.h"
 
 using namespace std;
 
@@ -32,7 +33,7 @@ int main()
         string first_follow_file = "first_follow_data.txt";
         string token_stream_file = "result.txt";
         string parsingTableFile = "parsing_table.txt";
-        string testphase2_file = "test_phase2.txt";
+        string testphase2_file = "test.txt";
         string cleaned_grammar_file = "cleaned_grammar.txt";
         string terminalsNonTerminalsFile = "terminal&non-terminal.txt";
         string ll1GrammarFile = "ll1_grammar.txt";
@@ -80,8 +81,9 @@ int main()
 
         map<string, set<string>> first, follow;
         calculateFirst(grammar, first);
+        cout << "Calculated First sets.\n";
         calculateFollow(grammar, first, follow, startSymbol);
-
+        cout << "Calculated Follow sets.\n";
         std::ofstream firstFollowFile(first_follow_file);
         if (firstFollowFile)
         {
@@ -120,19 +122,23 @@ int main()
             parsingTableFile);
 
         map<pair<string, string>, string> parsingTable = parsingTableGenerator.getParsingTable();
-        for (const auto &entry : parsingTable)
-        {
-            cout << entry.first.first << " -> " << entry.first.second << " -> " << entry.second << endl;
-        }
 
-        // mohamed code
         // start here use parsingTableFile ,testphase2_file , parsingTable
+
+        vector<string> tokens = readLexicalTokens();
+        vector<string> productionRules = getProductionRules(tokens, startSymbol, parsingTable);
+        cout << "Applied Production Rules:" << endl;
+        for (const string &rule : productionRules)
+        {
+            cout << rule << endl;
+        }
     }
     catch (const exception &e)
     {
         cerr << "Error: " << e.what() << endl;
         return 1;
     }
+
 
     return 0;
 }

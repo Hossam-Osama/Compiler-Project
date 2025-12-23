@@ -64,7 +64,7 @@ void calculateFirst(const map<string, vector<vector<string>>> &grammar, map<stri
         {
             for (const auto &sym : prod)
             {
-                if (grammar.find(sym) == grammar.end() && sym != "\\L")
+                if (grammar.find(sym) == grammar.end() && sym != "\\L" && sym != "'\\L'" && sym != "\\L'")
                     terminals.insert(sym);
             }
         }
@@ -95,12 +95,17 @@ void calculateFirst(const map<string, vector<vector<string>>> &grammar, map<stri
                         string key = normalizeNonTerminal(symbol);
                         size_t prevSize = first[nt].size();
                         first[nt].insert(first[key].begin(), first[key].end());
+
                         first[nt].erase("\\L");
-                        if (first[key].count("\\L") == 0)
+                        first[nt].erase("'\\L'");
+                        first[nt].erase("\\L'");
+
+                        if (first[key].count("\\L") == 0 && first[key].count("'\\L'") == 0 && first[key].count("\\L'") == 0)
                         {
                             epsilonInAll = false;
                             break;
                         }
+
                         if (first[nt].size() != prevSize)
                             changed = true;
                     }
@@ -130,7 +135,7 @@ void calculateFollow(const map<string, vector<vector<string>>> &grammar,
         {
             for (const auto &sym : prod)
             {
-                if (grammar.find(sym) == grammar.end() && sym != "\\L")
+                if (grammar.find(sym) == grammar.end() && sym != "\\L" && sym != "'\\L'" && sym != "\\L'")
                     terminals.insert(sym);
             }
         }
@@ -153,7 +158,8 @@ void calculateFollow(const map<string, vector<vector<string>>> &grammar,
                 for (size_t i = 0; i < prod.size(); ++i)
                 {
                     string symbol = prod[i];
-                    if (terminals.count(symbol) > 0 || symbol == "\\L")
+                    cout << "Processing symbol: " << symbol << " in production of " << lhs << endl;
+                    if (terminals.count(symbol) > 0 || symbol == "\\L" || symbol == "'\\L'" || symbol == "\\L'")
                         continue;
 
                     string symKey = normalizeNonTerminal(symbol);
@@ -174,10 +180,10 @@ void calculateFollow(const map<string, vector<vector<string>>> &grammar,
                             string nextKey = normalizeNonTerminal(nextSym);
                             for (const string &f : first.at(nextKey))
                             {
-                                if (f != "\\L")
+                                if (f != "\\L" && f != "'\\L'" && f != "\\L'")
                                     trailer.insert(f);
                             }
-                            if (first.at(nextKey).count("\\L") == 0)
+                            if (first.at(nextKey).count("\\L") == 0 && first.at(nextKey).count("'\\L'") == 0 && first.at(nextKey).count("\\L'") == 0)
                             {
                                 epsilonInAll = false;
                                 break;

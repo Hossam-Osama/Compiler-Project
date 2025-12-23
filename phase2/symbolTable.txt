@@ -1,5 +1,2 @@
-count 1
-mnt 3
-pass 2
-sum 0
-x 4
+x 0
+y 1
