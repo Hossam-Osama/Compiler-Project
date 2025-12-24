@@ -1,3 +1,8 @@
 g++ main.cpp first_follow.cpp LL1ParsingTableGenerator.cpp ProductionRules.cpp ../phase1/Compiler_project/RegexToFSA.cpp ../phase1/Compiler_project/dfa.cpp   -o main
  ./main.exe
  
+
+
+
+ g++ main2.cpp CFGParser.cpp first_follow.cpp LL1ParsingTableGenerator.cpp NonTerminal.cpp ProductionRules.cpp Read_File.cpp State.cpp StringProcessor.cpp Terminal.cpp ../phase1/Compiler_project/RegexToFSA.cpp ../phase1/Compiler_project/dfa.cpp  -Iheaders -o main2.exe
+  ./main2.exe   
