@@ -18,8 +18,8 @@ string trim(const string &s);
 string normalizeNonTerminal(const string &s);
 vector<string> split(const string &str, char delimiter);
 vector<string> tokenize(const string &production);
-void calculateFirst(const map<string, vector<vector<string>>> &grammar, map<string, set<string>> &first);
-void calculateFollow(const map<string, vector<vector<string>>> &grammar, const map<string, set<string>> &first, map<string, set<string>> &follow, const string &startSymbol);
+void calculateFirst(map<string, vector<vector<string>>> &grammar, map<string, set<string>> &first);
+void calculateFollow(map<string, vector<vector<string>>> &grammar, map<string, set<string>> &first, map<string, set<string>> &follow, const string &startSymbol);
 extern void run_phase1();
 
 int main()
