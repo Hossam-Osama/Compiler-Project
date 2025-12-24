@@ -32,7 +32,9 @@ vector<string> getProductionRules(vector<string> input, string startRule, map<pa
         string currentInput = input.front();
 
         cout << endl;
+        if(currentInput != "$"){
         currentInput = "'" + currentInput + "'";
+        }
 
         cout << "Stack top: " << top << ", Current input: " << currentInput << endl;
         if(top == currentInput && top == "$") {
