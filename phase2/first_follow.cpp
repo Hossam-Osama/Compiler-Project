@@ -155,7 +155,7 @@ void First_Follow::printFirstAndFollowToFile(const std::string& filename) {
 
         for (const auto& elem : first_tokens) {
             if (!first_elem) out << " ";
-            out << "'" << elem << "'";
+            out << elem;
             first_elem = false;
         }
         out << " }" << std::endl;
@@ -168,7 +168,7 @@ void First_Follow::printFirstAndFollowToFile(const std::string& filename) {
 
         for (const auto& elem : follow_tokens) {
             if (!first_elem) out << " ";
-            out << "'" << elem << "'";
+            out << elem;
             first_elem = false;
         }
         out << " }" << std::endl;
