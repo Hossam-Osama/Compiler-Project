@@ -1,85 +1,7 @@
-#include <string>
-#include <vector>
-#include <set>
-
-class Item {
-public:
-    virtual ~Item() = default;
-    virtual std::string getName() const = 0;
-    virtual bool isEqual(Item* item) const = 0;
-};
-
-class NonTerminal : public Item {
-public:
-    NonTerminal(const std::string& name);
-    std::string getName() const override;
-    void addProduction(const std::vector<Item*>& production);
-    const std::vector<std::vector<Item*>>& getProductions();
-    bool isEqual(Item* item) const override;
-private:
-    std::string name;
-    std::vector<std::vector<Item*>> productions;
-};
-
-class Terminal : public Item {
-public:
-    Terminal(const std::string& name);
-    std::string getName() const override;
-    bool isEqual(Item* item) const override;
-private:
-    std::string name;
-};
-
-#include <iostream>
-#include <map>
-#include <set>
-#include <vector>
-
-#define EPSILON '\0'
-
-using namespace std;
-class State {
- public:
-  State();
-  virtual ~State();
-  bool is_accepted = false;
-  bool is_invalid = false;
-  map<char, vector<State*>> transitions;
-  string accepted_rule;
-
-  void add_transition(char action, State* to_state);
-  void print_recursive(set<const State*>& visited) const;
-  void print_state_info() const;
-};
-
-class StringProcessor {
- public:
-  StringProcessor();
-  virtual ~StringProcessor();
-  vector<string> read_rules(string address);
-  void skip_unnecessary_spaces(int& i, string rule_definition);
-  string trim(const string& str);
-  vector<string> string_processor(const string& input);
-  string remove_backslash(string org);
-};
-
-class CFGParser {
-public:
-    void cleanGrammar(const std::string& filename, const std::string& cleanFilename);
-    std::map<std::string, Item*> parseGrammar(const std::string& filename);
-    bool debugParser(const std::string& filename);
-    void transformToLL1(const std::string &inputFilename, const std::string &outputFilename);
-    std::string getStartSymbolName();
-    std::map<std::string, Item*> getGrammar();
-private:
-    std::string startSymbolName;
-    std::map<std::string, Item*> CFG;
-    bool startsWithPrefix(const std::vector<std::string> &production, const std::vector<std::string> &prefix);
-    std::vector<std::string> tokenizeProduction(const std::string &production);
-    void eliminateLeftRecursion(std::map<std::string, std::vector<std::vector<std::string>>> &grammarRules, std::vector<std::string> &ruleOrder);
-    void performLeftFactoring(std::map<std::string, std::vector<std::vector<std::string>>> &grammarRules, std::vector<std::string> &ruleOrder);
-    std::vector<std::string> findCommonPrefix(const std::vector<std::string> &prod1, const std::vector<std::string> &prod2);
-};
+#include "../headers/CFGParser.h"
+#include "../headers/Terminal.h"
+#include "../headers/NonTerminal.h"
+#include "../headers/StringProcessor.h"
 #include <fstream>
 #include <sstream>
 #include <map>
@@ -92,8 +14,6 @@ private:
 #include <sstream>
 #include <iostream>
 #include <algorithm>
-
-
 
 /**
  * @brief Cleans the CFG file and expands rules with nested brackets.
@@ -267,7 +187,6 @@ void CFGParser::cleanGrammar(const std::string& filename, const std::string& cle
 }
 
 
-
 /**
  * @brief Parses a context-free grammar from a file and constructs a map of items.
  *
@@ -368,102 +287,6 @@ std::map<std::string, Item*> CFGParser::parseGrammar(const std::string& cleanFil
     CFG = grammar;
     return grammar;
 }
-
-
-// /**
-//  * @brief Transforms a CFG into LL(1) form by eliminating left recursion and performing left factoring.
-//  *
-//  * @param inputFilename The cleaned grammar file to transform.
-//  * @param outputFilename The output file for the LL(1) grammar.
-//  */
-// void CFGParser::transformToLL1(const std::string& inputFilename, const std::string& outputFilename) {
-//     StringProcessor processor;
-//     std::ifstream inputFile(inputFilename);
-//     if (!inputFile.is_open()) {
-//         std::cerr << "Error: Could not open file " << inputFilename << std::endl;
-//         return;
-//     }
-
-//     // Store grammar rules as map: LHS -> vector of productions (each production is vector of tokens)
-//     std::map<std::string, std::vector<std::vector<std::string>>> grammarRules;
-//     std::vector<std::string> ruleOrder; // To preserve order of rules
-//     std::string line;
-
-//     // Parse the input grammar
-//     while (std::getline(inputFile, line)) {
-//         line = processor.trim(line);
-//         if (line.empty()) continue;
-
-//         size_t equalPos = line.find('=');
-//         if (equalPos == std::string::npos) continue;
-
-//         std::string lhs = processor.trim(line.substr(0, equalPos));
-//         std::string rhs = processor.trim(line.substr(equalPos + 1));
-
-//         if (grammarRules.find(lhs) == grammarRules.end()) {
-//             ruleOrder.push_back(lhs);
-//         }
-
-//         // Split RHS by '|' and tokenize each production
-//         std::vector<std::vector<std::string>> productions;
-//         std::string currentProduction;
-//         bool insideQuotes = false;
-
-//         for (size_t i = 0; i < rhs.size(); ++i) {
-//             char c = rhs[i];
-//             if (c == '\'') {
-//                 insideQuotes = !insideQuotes;
-//                 currentProduction += c;
-//             } else if (c == '|' && !insideQuotes) {
-//                 if (!currentProduction.empty()) {
-//                     productions.push_back(tokenizeProduction(processor.trim(currentProduction)));
-//                     currentProduction.clear();
-//                 }
-//             } else {
-//                 currentProduction += c;
-//             }
-//         }
-//         if (!currentProduction.empty()) {
-//             productions.push_back(tokenizeProduction(processor.trim(currentProduction)));
-//         }
-
-//         grammarRules[lhs] = productions;
-//     }
-//     inputFile.close();
-
-//     // Step 1: Eliminate left recursion
-//     std::cout << "Eliminating left recursion..." << std::endl;
-//     eliminateLeftRecursion(grammarRules, ruleOrder);
-
-//     // Step 2: Perform left factoring
-//     std::cout << "Performing left factoring..." << std::endl;
-//     performLeftFactoring(grammarRules, ruleOrder);
-
-//     // Write the transformed grammar to output file
-//     std::ofstream outputFile(outputFilename);
-//     if (!outputFile.is_open()) {
-//         std::cerr << "Error: Could not open output file " << outputFilename << std::endl;
-//         return;
-//     }
-
-//     for (const std::string& lhs : ruleOrder) {
-//         if (grammarRules.find(lhs) != grammarRules.end()) {
-//             outputFile << lhs << " = ";
-//             const auto& productions = grammarRules[lhs];
-//             for (size_t i = 0; i < productions.size(); ++i) {
-//                 for (size_t j = 0; j < productions[i].size(); ++j) {
-//                     outputFile << productions[i][j];
-//                     if (j < productions[i].size() - 1) outputFile << " ";
-//                 }
-//                 if (i < productions.size() - 1) outputFile << " | ";
-//             }
-//             outputFile << std::endl;
-//         }
-//     }
-//     outputFile.close();
-//     std::cout << "LL(1) grammar written to " << outputFilename << std::endl;
-// }
-
 /**
  * @brief Transforms a CFG into LL(1) form by eliminating ALL left recursion (immediate and non-immediate) 
  *        and performing left factoring.
@@ -793,7 +616,6 @@ void CFGParser::performLeftFactoring(std::map<std::string, std::vector<std::vect
         }
     }
 }
-
 /**
  * @brief Finds the common prefix between two productions.
  */
@@ -824,7 +646,6 @@ bool CFGParser::startsWithPrefix(const std::vector<std::string>& production,
     }
     return true;
 }
-
 /**
  * @brief A function to debug the parser.
  * 
@@ -839,11 +660,7 @@ bool CFGParser::debugParser(const std::string& filename) {
 
     // Clean the grammar file
     parser.cleanGrammar(filename, "cleaned_grammar.txt");
-
-    // Transform to LL(1) form
     parser.transformToLL1("cleaned_grammar.txt", "ll1_grammar.txt");
-
-    // Parse the cleaned grammar file
     parser.parseGrammar("ll1_grammar.txt");
 
     std::map<std::string, Item*> grammar = parser.getGrammar();
@@ -910,174 +727,4 @@ std::map<std::string, Item*> CFGParser::getGrammar() {
         std::cerr << "\033[31mError: Grammar is empty. Make sure you parse the grammar first.\033[0m" << std::endl;
     }
     return CFG;
-}
-
-
-// State implementations
-State::State() {
-  // ctor
-}
-
-State::~State() {
-  // Clear transitions to avoid dangling pointers
-  for (auto& transition : transitions) {
-    transition.second.clear();  // Clear vector of pointers
-  }
-  transitions.clear();  // Clear the map itself
-}
-
-void State::add_transition(char a, State* state) {
-  if (transitions.find(a) == transitions.end()) {
-    vector<State*> v;
-    transitions[a] = v;
-  }
-  transitions[a].push_back(state);
-}
-
-void State::print_recursive(set<const State*>& visited) const {
-  cout << this << endl;
-  if (visited.count(this)) {
-    cout << "(already visited)" << endl;
-    return;
-  }
-
-  visited.insert(this);
-
-  cout << "Is Accepted: " << (is_accepted ? "Yes" : "No") << endl;
-  cout << "Transitions:";
-
-  for (const auto& [action, states] : transitions) {
-    cout << "     Action: " << action << " -> ";
-    for (const auto& state : states) {
-      cout << state << " ";
-    }
-    cout << endl;
-
-    for (const auto& state : states) {
-      if (state) {
-        cout << endl << "Recursing into state: ";
-        state->print_recursive(visited);
-      }
-    }
-  }
-
-  cout << "Exiting print_recursive for state: " << this << endl;
-}
-
-void State::print_state_info() const {
-  cout << "State Info: " << endl;
-  cout << "state: " << this << endl;
-  cout << "Is Accepted: " << (is_accepted ? "Yes" : "No") << endl;
-  cout << "Is invalid: " << (is_invalid ? "Yes" : "No") << endl;
-  cout << "Accepted Rule: " << (accepted_rule.empty() ? "None" : accepted_rule) << endl;
-  cout << "Transitions: " << endl;
-
-  for (const auto& transition : transitions) {
-    cout << "  Action: " << transition.first << " -> States: ";
-    for (State* state : transition.second) {
-      cout << state << " ";  // This prints the memory address of the state
-    }
-    cout << endl;
-  }
-}
-
-// StringProcessor implementations
-StringProcessor::StringProcessor() {
-  // ctor
-}
-
-StringProcessor::~StringProcessor() {
-  // dtor
-}
-
-void StringProcessor::skip_unnecessary_spaces(int& i, string rule_definition) {
-  while (i + 1 < (int)rule_definition.size() && rule_definition[i + 1] == ' ')
-    i++;
-}
-
-vector<string> StringProcessor::read_rules(string address) {
-  vector<string> lines;
-  ifstream file(address);
-  if (!file.is_open()) {
-    cerr << "Error: Could not open the file: " << address << endl;
-    return lines;
-  }
-
-  string line;
-  while (getline(file, line)) {
-    lines.push_back(line);
-  }
-
-  file.close();
-  return lines;
-}
-
-string StringProcessor::remove_backslash(string org) {
-  string to_remove_back_slash = "";
-  if (org[0] == '\\' && org[1] == 'L')
-    to_remove_back_slash = EPSILON;
-  else {
-    for (int i = 0; i < (int)org.size(); i++) {
-      char c = org[i];
-      if (!(c == '\\') || (i > 0 && org[i - 1] == '\\'))
-        to_remove_back_slash += c;
-    }
-  }
-  return to_remove_back_slash;
-}
-
-string StringProcessor::trim(const string& str) {
-  size_t start = str.find_first_not_of(" \t\n\r");
-  if (start == std::string::npos) return "";
-  size_t end = str.find_last_not_of(" \t\n\r");
-  return str.substr(start, end - start + 1);
-}
-
-vector<string> StringProcessor::string_processor(const string& input) {
-  string trimmed_input = input;
-
-  if ((trimmed_input.front() == '{' && trimmed_input.back() == '}') ||
-      (trimmed_input.front() == '[' && trimmed_input.back() == ']')) {
-    trimmed_input = trimmed_input.substr(1, trimmed_input.size() - 2);
-  }
-//  cout << trimmed_input << endl;
-  vector<string> result;
-  istringstream iss(trimmed_input);
-  string token;
-
-  while (iss >> token) {
-    result.push_back(token);
-  }
-
-  return result;
-}
-
-// NonTerminal implementations
-NonTerminal::NonTerminal(const std::string& name) : name(name) {}
-
-std::string NonTerminal::getName() const {
-    return name;
-}
-
-void NonTerminal::addProduction(const std::vector<Item*>& production) {
-    productions.push_back(production);
-}
-
-const std::vector<std::vector<Item*>>& NonTerminal::getProductions() {
-    return productions;
-}
-
-bool NonTerminal::isEqual(Item* item) const {
-    return item->getName() == name;
-}
-
-// Terminal implementations
-Terminal::Terminal(const std::string& name) : name(name) {}
-
-std::string Terminal::getName() const {
-    return name;
-}
-
-bool Terminal::isEqual(Item* item) const {
-    return item->getName() == name;
 }
