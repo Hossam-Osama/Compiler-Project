@@ -1,4 +1,4 @@
-#include "LL1ParsingTableGenerator.h"
+#include "../headers/LL1ParsingTableGenerator.h"
 #include <iostream>
 #include <fstream>
 #include <sstream>

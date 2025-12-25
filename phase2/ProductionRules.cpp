@@ -5,7 +5,7 @@
 #include <vector>
 #include <stdexcept>
 #include <map>
-#include "LL1ParsingTableGenerator.h"
+#include "../headers/LL1ParsingTableGenerator.h"
 
 using namespace std;
 
