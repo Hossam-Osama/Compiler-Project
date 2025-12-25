@@ -518,7 +518,7 @@ void CFGParser::eliminateLeftRecursion(std::map<std::string, std::vector<std::ve
 
         // If there's left recursion, eliminate it
         if (!recursiveProds.empty()) {
-            std::string newNonTerminal = lhs + "'";
+            std::string newNonTerminal = lhs + "_PRIME";
             std::vector<std::vector<std::string>> newProductions;
             std::vector<std::vector<std::string>> primeProductions;
 
@@ -536,7 +536,7 @@ void CFGParser::eliminateLeftRecursion(std::map<std::string, std::vector<std::ve
                 primeProductions.push_back(alpha);
             }
             // Add epsilon production
-            primeProductions.push_back(std::vector<std::string>{"ε"});
+            primeProductions.push_back(std::vector<std::string>{"\'\\L\'"});
 
             grammarRules[lhs] = newProductions;
             grammarRules[newNonTerminal] = primeProductions;
@@ -571,7 +571,8 @@ void CFGParser::performLeftFactoring(std::map<std::string, std::vector<std::vect
                     
                     if (!commonPrefix.empty()) {
                         // Found common prefix, perform left factoring
-                        std::string newNonTerminal = lhs + std::to_string(primeCount++);
+                        // std::string newNonTerminal = lhs + std::to_string(primeCount++);
+                        std::string newNonTerminal = lhs + "_PRIME";
                         
                         // Collect all productions with this common prefix
                         std::vector<size_t> indicesToRemove;
@@ -583,7 +584,7 @@ void CFGParser::performLeftFactoring(std::map<std::string, std::vector<std::vect
                                 std::vector<std::string> suffix(productions[k].begin() + commonPrefix.size(), 
                                                                productions[k].end());
                                 if (suffix.empty()) {
-                                    suffix.push_back("ε");
+                                    suffix.push_back("\'\\L\'"); // Epsilon production
                                 }
                                 factoredProductions.push_back(suffix);
                             }

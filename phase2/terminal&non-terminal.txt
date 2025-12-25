@@ -46,8 +46,8 @@ Item: EXPRESSION (Non-terminal)
   Production: SIMPLE_EXPRESSION EXPRESSION_PRIME 
 
 Item: EXPRESSION_PRIME (Non-terminal)
-  Production: 'relop' SIMPLE_EXPRESSION 
   Production: '\L' 
+  Production: 'relop' SIMPLE_EXPRESSION 
 
 Item: FACTOR (Non-terminal)
   Production: 'id' 
