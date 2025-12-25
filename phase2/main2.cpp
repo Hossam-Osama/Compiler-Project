@@ -56,12 +56,10 @@ int main()
             terminalsNonTerminalsFile,
             parsingTableFile);
 
-        map<pair<string, string>, string> parsingTable = parsingTableGenerator.getParsingTable();
-
         // start here use parsingTableFile ,testphase2_file , parsingTable
 
         vector<string> tokens = readLexicalTokens();
-        vector<string> productionRules = getProductionRules(tokens, startSymbol, parsingTable);
+        vector<string> productionRules = getProductionRules(tokens, startSymbol, parsingTableGenerator);
         cout << "Applied Production Rules:" << endl;
         for (const string &rule : productionRules)
         {

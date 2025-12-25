@@ -9,6 +9,19 @@
 
 using namespace std;
 
+void printResults(const vector<string>& stack, string fileName) {
+    ofstream out(fileName + ".txt");
+
+    if (!out.is_open()) {
+        cerr << "Failed to open output.txt\n";
+    }
+
+    out << "LL(1) Parser Output\n";
+    out << "Parsing completed successfully\n";
+
+    out.close();
+}
+
 vector<string> splitRulesString(const string& str, const string& delimiter) {
     vector<string> result;
     istringstream iss(str);
@@ -20,9 +33,13 @@ vector<string> splitRulesString(const string& str, const string& delimiter) {
 
     return result;
 }
-vector<string> getProductionRules(vector<string> input, string startRule, map<pair<string, string>, string> parsingTable) {
+vector<string> getProductionRules(vector<string>& input, string& startRule, LL1ParsingTableGenerator& parsingTableGenerator) {
     vector<string> stack;
     vector<string> rules; // output
+    vector<string> stackTrace; // for debugging
+    map<pair<string, string>, string> parsingTable = parsingTableGenerator.getParsingTable();
+    map<string, set<string>> folowSet = parsingTableGenerator.getFollowSets();
+    set<string> terminals = parsingTableGenerator.getTerminals();
 
     stack.push_back("$");
     stack.push_back(startRule);
@@ -31,41 +48,49 @@ vector<string> getProductionRules(vector<string> input, string startRule, map<pa
         string top = stack.back();
         string currentInput = input.front();
 
-        cout << endl;
-        if(currentInput != "$"){
-        currentInput = "'" + currentInput + "'";
+        // Handle quote formatting for table lookup
+        string lookupInput = currentInput;
+        if(lookupInput != "$"){
+            lookupInput = "'" + lookupInput + "'";
         }
 
-        cout << "Stack top: " << top << ", Current input: " << currentInput << endl;
-        if(top == currentInput && top == "$") {
-            // Successfully parsed
+        stackTrace.push_back("Stack top: " + top + ", Current input: " + lookupInput + "\n");
+
+        string fullRule = parsingTable[{top, lookupInput}];
+        // 1. Success Case
+        if(top == lookupInput && top == "$") {
             break;
-        } else if(top == currentInput) {
+        }
+        // 2. Match Case (Terminal on stack matches input)
+        else if(top == lookupInput) {
             stack.pop_back();
             input.erase(input.begin());
-        } else if(parsingTable.find({top, currentInput}) != parsingTable.end()) {
-            // Apply production rule
-            string fullRule = parsingTable[{top, currentInput}];
-
-            // 2. Find the position of " = "
+        }
+        // 3. Apply Rule Case (Non-terminal on stack, rule exists in table)
+        else if(parsingTable.find({top, lookupInput}) != parsingTable.end() && fullRule !="EMPTY") {
+            if (fullRule.empty()) {
+                stackTrace.push_back("Error: Empty production rule found for " + top + " has no " + lookupInput + " production rule.\n");
+                break; // Stop parsing on internal error
+            }
             size_t eqPos = fullRule.find(" = ");
 
+            // Internal Check: Is the grammar rule string valid?
             if (eqPos == string::npos) {
-                cerr << "Error: Invalid production rule format: " << fullRule << endl;
-                break;
+                stackTrace.push_back("Error: Invalid production rule format in table: " + fullRule + "\n");
+                break; // Stop parsing on internal error
             }
 
             string production = "";
-            if (eqPos  != 0) {
+            if (eqPos != 0) {
                 production = fullRule.substr(eqPos + 3);
             }
 
-
-            cout << "\t ==> Applying production: " << top << " = " << production << endl;
+            stackTrace.push_back("\t ==>Applying production: " + top + " = " + production + "\n");
             rules.push_back(production);
 
-            stack.pop_back();
+            stack.pop_back(); // Pop the Non-Terminal
 
+            // Push new symbols to stack (unless epsilon)
             if(production != "\\L") {
                 vector<string> symbols;
                 size_t pos = 0;
@@ -73,19 +98,49 @@ vector<string> getProductionRules(vector<string> input, string startRule, map<pa
                     symbols.push_back(production.substr(0, pos));
                     production.erase(0, pos + 1);
                 }
-                symbols.push_back(production); // last symbol
+                symbols.push_back(production);
 
                 for(auto it = symbols.rbegin(); it != symbols.rend(); ++it) {
                     stack.push_back(*it);
                 }
             }
-        } else {
-            // Error in parsing
-            cerr << "Error: No rule for (" << top << ", " << currentInput << ")" << endl;
-            break;
+        }
+        // 4. Error Case (No rule found) -> THIS IS WHERE PANIC MODE GOES
+        else {
+            // Case 1: Stack top is a terminal
+            if(terminals.find(top) != terminals.end()) {
+                cout << endl << "*** SYNTAX ERROR: Unexpected token '" << currentInput
+                     << "' -- Expected '" << top << "'. ***" << endl;
+                stackTrace.push_back("*** SYNTAX ERROR: Unexpected token '" + currentInput + "' -- Expected '" + top + "'. ***\n");
+                rules.push_back("Error: Unexpected token '" + currentInput +"' -- Expected '" + top + "'.");
+                stackTrace.push_back("*** PANIC MODE: Discarding top of stack '" + top + "' ***\n");
+                stack.pop_back();
+                continue;
+            }
+
+            // Case 2: Stack top is a non-terminal
+            else {
+                // sync point
+                if(folowSet.find(top) != folowSet.end() &&
+                    folowSet[top].find(currentInput) != folowSet[top].end()) {
+                    stackTrace.push_back("*** SYNTAX ERROR: Missing expected token for non-terminal " + top + ". ***\n");
+                    rules.push_back("Error: Missing expected token for non-terminal " + top + ".");
+                    cout << "*** PANIC MODE: Discarding non-terminal '" << top << "' from stack ***" << endl;
+                    stackTrace.push_back("*** PANIC MODE: Discarding non-terminal '" + top + "' from stack ***\n");
+                    stack.pop_back();
+                }
+                else {
+                    stackTrace.push_back("*** SYNTAX ERROR: Unexpected token '" + currentInput + "' - No rule for non-terminal '" + top + "'. ***\n");
+                    rules.push_back("Error: Unexpected token '" + currentInput + "' - No rule for non-terminal '" + top + "'.");
+                    stackTrace.push_back("*** PANIC MODE: Discarding input token '" + currentInput + "' ***\n");
+                    input.erase(input.begin());
+                }
+            }
         }
     }
 
+    printResults(rules, "output");
+    printResults(stackTrace, "stack_trace");
 
     return rules;
 }
