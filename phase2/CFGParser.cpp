@@ -18,7 +18,7 @@
 /**
  * @brief Cleans the CFG file and expands rules with nested brackets.
  *
- * Clean the CFG by removing all # symbols, putting each rule on a new line, 
+ * Clean the CFG by removing all # symbols, putting each rule on a new line,
  * and expanding rules with brackets into new nonterminals, while handling special cases like terminal brackets inside quotes.
  *
  * Additionally, checks for rule ambiguity and prints warnings for the following cases:
@@ -288,7 +288,7 @@ std::map<std::string, Item*> CFGParser::parseGrammar(const std::string& cleanFil
     return grammar;
 }
 /**
- * @brief Transforms a CFG into LL(1) form by eliminating ALL left recursion (immediate and non-immediate) 
+ * @brief Transforms a CFG into LL(1) form by eliminating ALL left recursion (immediate and non-immediate)
  *        and performing left factoring.
  *
  * This implements the complete algorithm:
@@ -360,26 +360,26 @@ void CFGParser::transformToLL1(const std::string& inputFilename, const std::stri
 
     // ==================== STEP 2: Eliminate ALL left recursion (general algorithm) ====================
     std::cout << "Eliminating all left recursion (immediate and non-immediate)..." << std::endl;
-    
+
     int n = ruleOrder.size();
-    
+
     // Main loop: for i from 1 to n
     for (int i = 0; i < n; ++i) {
         std::string Ai = ruleOrder[i];
-        
+
         std::cout << "\n--- Processing " << Ai << " (position " << (i+1) << " of " << n << ") ---" << std::endl;
-        
+
         // Inner loop: for j from 1 to i-1
         for (int j = 0; j < i; ++j) {
             std::string Aj = ruleOrder[j];
-            
+
             std::cout << "  Checking for productions " << Ai << " → " << Aj << "γ..." << std::endl;
-            
+
             // Check if Ai has any production that starts with Aj
             std::vector<std::vector<std::string>>& AiProductions = grammarRules[Ai];
             std::vector<std::vector<std::string>> newProductions;
             bool substitutionMade = false;
-            
+
             for (const auto& production : AiProductions) {
                 // Check if this production starts with Aj
                 if (!production.empty() && production[0] == Aj) {
@@ -389,19 +389,19 @@ void CFGParser::transformToLL1(const std::string& inputFilename, const std::stri
                         std::cout << " " << production[k];
                     }
                     std::cout << std::endl;
-                    
+
                     // Extract γ (everything after Aj)
                     std::vector<std::string> gamma(production.begin() + 1, production.end());
-                    
+
                     // Get all productions of Aj: Aj → α₁ | α₂ | ... | αₖ
                     const std::vector<std::vector<std::string>>& AjProductions = grammarRules[Aj];
-                    
+
                     // Replace Ai → Ajγ with Ai → α₁γ | α₂γ | ... | αₖγ
                     for (const auto& alpha : AjProductions) {
                         std::vector<std::string> newProduction = alpha;
                         newProduction.insert(newProduction.end(), gamma.begin(), gamma.end());
                         newProductions.push_back(newProduction);
-                        
+
                         std::cout << "    Substituted with: " << Ai << " → ";
                         for (const auto& token : newProduction) {
                             std::cout << token << " ";
@@ -413,20 +413,20 @@ void CFGParser::transformToLL1(const std::string& inputFilename, const std::stri
                     newProductions.push_back(production);
                 }
             }
-            
+
             // Update Ai's productions if we made any substitutions
             if (substitutionMade) {
                 grammarRules[Ai] = newProductions;
                 std::cout << "  Substitution completed for " << Ai << std::endl;
             }
         }
-        
+
         // Now eliminate immediate left recursion among Ai productions
         std::cout << "  Eliminating immediate left recursion in " << Ai << "..." << std::endl;
         std::vector<std::string> tempOrder = {Ai};
         eliminateLeftRecursion(grammarRules, ruleOrder);
     }
-    
+
     std::cout << "\nAll left recursion eliminated!" << std::endl;
 
     // ==================== STEP 3: Perform left factoring ====================
@@ -499,10 +499,10 @@ std::vector<std::string> CFGParser::tokenizeProduction(const std::string& produc
 void CFGParser::eliminateLeftRecursion(std::map<std::string, std::vector<std::vector<std::string>>>& grammarRules,
                                        std::vector<std::string>& ruleOrder) {
     std::vector<std::string> currentOrder = ruleOrder;
-    
+
     for (const std::string& lhs : currentOrder) {
         if (grammarRules.find(lhs) == grammarRules.end()) continue;
-        
+
         std::vector<std::vector<std::string>>& productions = grammarRules[lhs];
         std::vector<std::vector<std::string>> recursiveProds;
         std::vector<std::vector<std::string>> nonRecursiveProds;
@@ -563,25 +563,25 @@ void CFGParser::performLeftFactoring(std::map<std::string, std::vector<std::vect
             if (grammarRules.find(lhs) == grammarRules.end()) continue;
 
             std::vector<std::vector<std::string>>& productions = grammarRules[lhs];
-            
+
             // Find common prefixes
             for (size_t i = 0; i < productions.size(); ++i) {
                 for (size_t j = i + 1; j < productions.size(); ++j) {
                     std::vector<std::string> commonPrefix = findCommonPrefix(productions[i], productions[j]);
-                    
+
                     if (!commonPrefix.empty()) {
                         // Found common prefix, perform left factoring
                         // std::string newNonTerminal = lhs + std::to_string(primeCount++);
-                        std::string newNonTerminal = lhs + "_PRIME";
-                        
+                        std::string newNonTerminal = lhs + "_PRIME" + std::to_string(primeCount++);
+
                         // Collect all productions with this common prefix
                         std::vector<size_t> indicesToRemove;
                         std::vector<std::vector<std::string>> factoredProductions;
-                        
+
                         for (size_t k = 0; k < productions.size(); ++k) {
                             if (startsWithPrefix(productions[k], commonPrefix)) {
                                 indicesToRemove.push_back(k);
-                                std::vector<std::string> suffix(productions[k].begin() + commonPrefix.size(), 
+                                std::vector<std::string> suffix(productions[k].begin() + commonPrefix.size(),
                                                                productions[k].end());
                                 if (suffix.empty()) {
                                     suffix.push_back("\'\\L\'"); // Epsilon production
@@ -604,9 +604,9 @@ void CFGParser::performLeftFactoring(std::map<std::string, std::vector<std::vect
                         grammarRules[newNonTerminal] = factoredProductions;
                         ruleOrder.push_back(newNonTerminal);
 
-                        std::cout << "  Left factored " << lhs << " (common prefix of length " 
+                        std::cout << "  Left factored " << lhs << " (common prefix of length "
                                   << commonPrefix.size() << ")" << std::endl;
-                        
+
                         changed = true;
                         break;
                     }
@@ -624,7 +624,7 @@ std::vector<std::string> CFGParser::findCommonPrefix(const std::vector<std::stri
                                                      const std::vector<std::string>& prod2) {
     std::vector<std::string> prefix;
     size_t minLen = std::min(prod1.size(), prod2.size());
-    
+
     for (size_t i = 0; i < minLen; ++i) {
         if (prod1[i] == prod2[i]) {
             prefix.push_back(prod1[i]);
@@ -641,7 +641,7 @@ std::vector<std::string> CFGParser::findCommonPrefix(const std::vector<std::stri
 bool CFGParser::startsWithPrefix(const std::vector<std::string>& production,
                                 const std::vector<std::string>& prefix) {
     if (prefix.size() > production.size()) return false;
-    
+
     for (size_t i = 0; i < prefix.size(); ++i) {
         if (production[i] != prefix[i]) return false;
     }
@@ -649,10 +649,10 @@ bool CFGParser::startsWithPrefix(const std::vector<std::string>& production,
 }
 /**
  * @brief A function to debug the parser.
- * 
- * This function is used for debugging the parser by parsing a context-free grammar from 
+ *
+ * This function is used for debugging the parser by parsing a context-free grammar from
  * a file and printing the names of the items in the grammar and their productions.
- * 
+ *
  * @param filename The name of the file containing the context-free grammar.
  * @return True if the parser finished parsing without compilation errors.
  */
@@ -703,10 +703,10 @@ bool CFGParser::debugParser(const std::string& filename) {
 
 /**
  * @brief A function to get the start symbol.
- * 
+ *
  * This function is used to get the start symbol of the grammar.
  * Assumption: The start symbol is the first non-terminal in the grammar.
- * 
+ *
  * @return The start symbol of the grammar.
  */
 std::string CFGParser::getStartSymbolName() {
@@ -718,9 +718,9 @@ std::string CFGParser::getStartSymbolName() {
 
 /**
  * @brief A function to get the grammar.
- * 
+ *
  * This function is used to get the grammar.
- * 
+ *
  * @return The grammar.
  */
 std::map<std::string, Item*> CFGParser::getGrammar() {

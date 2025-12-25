@@ -60,11 +60,6 @@ int main()
 
         vector<string> tokens = readLexicalTokens();
         vector<string> productionRules = getProductionRules(tokens, startSymbol, parsingTableGenerator);
-        cout << "Applied Production Rules:" << endl;
-        for (const string &rule : productionRules)
-        {
-            cout << rule << endl;
-        }
     }
     catch (const exception &e)
     {

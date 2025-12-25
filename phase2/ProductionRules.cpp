@@ -10,14 +10,26 @@
 using namespace std;
 
 void printResults(const vector<string>& stack, string fileName) {
-    ofstream out(fileName + ".txt");
+    // Construct the full filename
+    string fullPath = fileName + ".txt";
 
+    // 'ofstream' automatically creates the file if it doesn't exist.
+    // If it does exist, it overwrites it.
+    ofstream out(fullPath);
+
+    // Check if the file was successfully created/opened
     if (!out.is_open()) {
-        cerr << "Failed to open output.txt\n";
+        cerr << "Error: Failed to create or open file '" << fullPath << "'\n";
+        return; // Stop the function so we don't crash trying to write
     }
 
     out << "LL(1) Parser Output\n";
     out << "Parsing completed successfully\n";
+
+    // Optional: Write the stack/rules if needed
+    for (const string& s : stack) {
+        out << s << "\n";
+    }
 
     out.close();
 }
@@ -109,8 +121,6 @@ vector<string> getProductionRules(vector<string>& input, string& startRule, LL1P
         else {
             // Case 1: Stack top is a terminal
             if(terminals.find(top) != terminals.end()) {
-                cout << endl << "*** SYNTAX ERROR: Unexpected token '" << currentInput
-                     << "' -- Expected '" << top << "'. ***" << endl;
                 stackTrace.push_back("*** SYNTAX ERROR: Unexpected token '" + currentInput + "' -- Expected '" + top + "'. ***\n");
                 rules.push_back("Error: Unexpected token '" + currentInput +"' -- Expected '" + top + "'.");
                 stackTrace.push_back("*** PANIC MODE: Discarding top of stack '" + top + "' ***\n");
@@ -125,7 +135,6 @@ vector<string> getProductionRules(vector<string>& input, string& startRule, LL1P
                     folowSet[top].find(currentInput) != folowSet[top].end()) {
                     stackTrace.push_back("*** SYNTAX ERROR: Missing expected token for non-terminal " + top + ". ***\n");
                     rules.push_back("Error: Missing expected token for non-terminal " + top + ".");
-                    cout << "*** PANIC MODE: Discarding non-terminal '" << top << "' from stack ***" << endl;
                     stackTrace.push_back("*** PANIC MODE: Discarding non-terminal '" + top + "' from stack ***\n");
                     stack.pop_back();
                 }
@@ -163,12 +172,6 @@ vector<string> readLexicalTokens() {
 
     tokens.push_back("$");
     inputFile.close();
-
-    cout << "Lexical tokens: " << endl;
-    for (const auto& token : tokens) {
-        cout << token << endl;
-    }
-    cout << endl;
 
     return tokens;
 }

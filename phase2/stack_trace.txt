@@ -1,0 +1,136 @@
+LL(1) Parser Output
+Parsing completed successfully
+Stack top: METHOD_BODY, Current input: 'int'
+
+	 ==>Applying production: METHOD_BODY = STATEMENT_LIST
+
+Stack top: STATEMENT_LIST, Current input: 'int'
+
+	 ==>Applying production: STATEMENT_LIST = STATEMENT STATEMENT_LIST_PRIME
+
+Stack top: STATEMENT, Current input: 'int'
+
+	 ==>Applying production: STATEMENT = DECLARATION
+
+Stack top: DECLARATION, Current input: 'int'
+
+	 ==>Applying production: DECLARATION = PRIMITIVE_TYPE 'id' ';'
+
+Stack top: PRIMITIVE_TYPE, Current input: 'int'
+
+	 ==>Applying production: PRIMITIVE_TYPE = 'int'
+
+Stack top: 'int', Current input: 'int'
+
+Stack top: 'id', Current input: 'id'
+
+Stack top: ';', Current input: ';'
+
+Stack top: STATEMENT_LIST_PRIME, Current input: 'id'
+
+	 ==>Applying production: STATEMENT_LIST_PRIME = STATEMENT STATEMENT_LIST_PRIME
+
+Stack top: STATEMENT, Current input: 'id'
+
+	 ==>Applying production: STATEMENT = ASSIGNMENT
+
+Stack top: ASSIGNMENT, Current input: 'id'
+
+	 ==>Applying production: ASSIGNMENT = 'id' '=' EXPRESSION ';'
+
+Stack top: 'id', Current input: 'id'
+
+Stack top: '=', Current input: '='
+
+Stack top: EXPRESSION, Current input: '='
+
+*** SYNTAX ERROR: Unexpected token '=' - No rule for non-terminal 'EXPRESSION'. ***
+
+*** PANIC MODE: Discarding input token '=' ***
+
+Stack top: EXPRESSION, Current input: 'num'
+
+	 ==>Applying production: EXPRESSION = SIMPLE_EXPRESSION EXPRESSION_PRIME1
+
+Stack top: SIMPLE_EXPRESSION, Current input: 'num'
+
+	 ==>Applying production: SIMPLE_EXPRESSION = TERM SIMPLE_EXPRESSION_PRIME
+
+Stack top: TERM, Current input: 'num'
+
+	 ==>Applying production: TERM = FACTOR TERM_PRIME
+
+Stack top: FACTOR, Current input: 'num'
+
+	 ==>Applying production: FACTOR = 'num'
+
+Stack top: 'num', Current input: 'num'
+
+Stack top: TERM_PRIME, Current input: ';'
+
+	 ==>Applying production: TERM_PRIME = \L
+
+Stack top: SIMPLE_EXPRESSION_PRIME, Current input: ';'
+
+	 ==>Applying production: SIMPLE_EXPRESSION_PRIME = \L
+
+Stack top: EXPRESSION_PRIME1, Current input: ';'
+
+	 ==>Applying production: EXPRESSION_PRIME1 = \L
+
+Stack top: ';', Current input: ';'
+
+Stack top: STATEMENT_LIST_PRIME, Current input: 'id'
+
+	 ==>Applying production: STATEMENT_LIST_PRIME = STATEMENT STATEMENT_LIST_PRIME
+
+Stack top: STATEMENT, Current input: 'id'
+
+	 ==>Applying production: STATEMENT = ASSIGNMENT
+
+Stack top: ASSIGNMENT, Current input: 'id'
+
+	 ==>Applying production: ASSIGNMENT = 'id' '=' EXPRESSION ';'
+
+Stack top: 'id', Current input: 'id'
+
+Stack top: '=', Current input: '='
+
+Stack top: EXPRESSION, Current input: 'num'
+
+	 ==>Applying production: EXPRESSION = SIMPLE_EXPRESSION EXPRESSION_PRIME1
+
+Stack top: SIMPLE_EXPRESSION, Current input: 'num'
+
+	 ==>Applying production: SIMPLE_EXPRESSION = TERM SIMPLE_EXPRESSION_PRIME
+
+Stack top: TERM, Current input: 'num'
+
+	 ==>Applying production: TERM = FACTOR TERM_PRIME
+
+Stack top: FACTOR, Current input: 'num'
+
+	 ==>Applying production: FACTOR = 'num'
+
+Stack top: 'num', Current input: 'num'
+
+Stack top: TERM_PRIME, Current input: ';'
+
+	 ==>Applying production: TERM_PRIME = \L
+
+Stack top: SIMPLE_EXPRESSION_PRIME, Current input: ';'
+
+	 ==>Applying production: SIMPLE_EXPRESSION_PRIME = \L
+
+Stack top: EXPRESSION_PRIME1, Current input: ';'
+
+	 ==>Applying production: EXPRESSION_PRIME1 = \L
+
+Stack top: ';', Current input: ';'
+
+Stack top: STATEMENT_LIST_PRIME, Current input: $
+
+	 ==>Applying production: STATEMENT_LIST_PRIME = \L
+
+Stack top: $, Current input: $
+

@@ -43,9 +43,9 @@ Item: DECLARATION (Non-terminal)
   Production: PRIMITIVE_TYPE 'id' ';' 
 
 Item: EXPRESSION (Non-terminal)
-  Production: SIMPLE_EXPRESSION EXPRESSION_PRIME 
+  Production: SIMPLE_EXPRESSION EXPRESSION_PRIME1 
 
-Item: EXPRESSION_PRIME (Non-terminal)
+Item: EXPRESSION_PRIME1 (Non-terminal)
   Production: '\L' 
   Production: 'relop' SIMPLE_EXPRESSION 
 
